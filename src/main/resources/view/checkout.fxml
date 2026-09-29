@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.campinggearrental.controller.CheckoutController">
+    <top>
+        <VBox spacing="8" style="-fx-padding: 16;">
+            <Label text="CAMPING GEAR RENTAL" style="-fx-font-size: 20; -fx-font-weight: bold;" />
+            <Label text="Checkout" style="-fx-font-size: 16;" />
+            <GridPane hgap="12" vgap="6">
+                <Label text="Rental date:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                <Label fx:id="rentalDateLabel" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                <Label text="Expected return:" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+                <Label fx:id="expectedReturnDateLabel" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+                <Label text="Rental days:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                <Label fx:id="rentalDaysLabel" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                <Label text="Payment status:" GridPane.columnIndex="2" GridPane.rowIndex="1" />
+                <Label fx:id="paymentStatusLabel" GridPane.columnIndex="3" GridPane.rowIndex="1" />
+            </GridPane>
+        </VBox>
+    </top>
+    <center>
+        <TableView fx:id="detailsTable" prefHeight="240">
+            <columns>
+                <TableColumn text="Quantity" fx:id="quantityColumn" prefWidth="180" />
+                <TableColumn text="Unit price" fx:id="unitPriceColumn" prefWidth="260" />
+            </columns>
+        </TableView>
+    </center>
+    <bottom>
+        <VBox spacing="8" style="-fx-padding: 16;">
+            <GridPane hgap="12" vgap="6">
+                <Label text="Subtotal:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                <Label fx:id="subtotalLabel" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                <Label text="Discount:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                <Label fx:id="discountLabel" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                <Label text="Total:" style="-fx-font-weight: bold;" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                <Label fx:id="totalLabel" style="-fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            </GridPane>
+            <HBox spacing="8">
+                <Button text="Refresh / Calculate Price" onAction="#handleRefresh" />
+                <Button text="Confirm Payment" onAction="#handleConfirmPayment" />
+            </HBox>
+        </VBox>
+    </bottom>
+</BorderPane>
