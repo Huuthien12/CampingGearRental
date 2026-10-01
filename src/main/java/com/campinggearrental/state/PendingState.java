@@ -4,7 +4,6 @@ import com.campinggearrental.model.RentalOrder;
 public class PendingState implements RentalState {
     @Override
     public void confirm(RentalOrder order) {
-        System.out.println("Đang xác nhận đơn hàng...");
         order.setCurrentState(new ConfirmedState());
     }
 
@@ -20,7 +19,6 @@ public class PendingState implements RentalState {
 
     @Override
     public void cancel(RentalOrder order) {
-        System.out.println("Đã hủy đơn hàng (chưa trừ kho nên không cần hoàn).");
         order.setCurrentState(new CancelledState());
     }
 }

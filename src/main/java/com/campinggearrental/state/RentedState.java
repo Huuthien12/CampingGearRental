@@ -14,7 +14,6 @@ public class RentedState implements RentalState {
 
     @Override
     public void returnEquipment(RentalOrder order) {
-        System.out.println("Khách đang trả thiết bị. Đang hoàn kho...");
         order.setCurrentState(new ReturnedState());
     }
 
