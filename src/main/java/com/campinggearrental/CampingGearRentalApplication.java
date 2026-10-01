@@ -1,29 +1,37 @@
 package com.campinggearrental;
 
 import javafx.application.Application;
-import com.campinggearrental.controller.CheckoutController;
-import com.campinggearrental.service.CheckoutService;
-import com.campinggearrental.service.PricingService;
-import com.campinggearrental.service.RentalPricingAdapter;
-import com.campinggearrental.util.CheckoutDemoData;
-import java.io.IOException;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import com.campinggearrental.controller.CustomerController;
+import com.campinggearrental.controller.LoginController;
+import com.campinggearrental.repository.JdbcCustomerRepository;
+import com.campinggearrental.repository.JdbcUserRepository;
+import com.campinggearrental.service.AuthService;
+import com.campinggearrental.service.CustomerService;
 
 public class CampingGearRentalApplication extends Application {
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/checkout.fxml"));
-        Parent root = loader.load();
-        CheckoutController controller = loader.getController();
-        controller.load(
-                CheckoutDemoData.createOrder(),
-                new CheckoutService(new RentalPricingAdapter(new PricingService())));
+    private Stage stage;
 
-        stage.setTitle("Camping Gear Rental Checkout");
-        stage.setScene(new Scene(root, 760, 560));
+    @Override
+    public void start(Stage stage) {
+        this.stage = stage;
+        stage.setTitle("Camping Gear Rental Management");
+        showLogin();
         stage.show();
+    }
+
+    private void showLogin() {
+        LoginController controller = new LoginController(
+                new AuthService(new JdbcUserRepository()), this::showCustomers);
+        stage.setScene(new Scene(controller.createView(), 460, 320));
+        stage.centerOnScreen();
+    }
+
+    private void showCustomers() {
+        CustomerController controller = new CustomerController(
+                new CustomerService(new JdbcCustomerRepository()), this::showLogin);
+        stage.setScene(new Scene(controller.createView(), 1050, 680));
+        stage.centerOnScreen();
     }
 }

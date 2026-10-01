@@ -28,6 +28,8 @@ mvn javafx:run
 
 Create a MySQL database, then run `database/schema.sql` followed by `database/seed.sql` against it. The seed data uses the demo account `admin` / `admin123` specified in the project plan; replace it before any non-demo use.
 
+The application connects to `jdbc:mysql://localhost:3306/camping_gear_rental` by default with username `root` and an empty password. Override the connection settings with `CAMPING_DB_URL`, `CAMPING_DB_USERNAME`, and `CAMPING_DB_PASSWORD`, or the matching `camping.db.url`, `camping.db.username`, and `camping.db.password` Java system properties. The demo schema stores the seed password as plain text; use hashed passwords before using real accounts.
+
 ## Project structure
 
 ```text
@@ -40,6 +42,8 @@ docs/                                 Project plan and diagrams
 ```
 
 The intended flow is JavaFX View → Controller → Service → Repository/DAO → MySQL.
+
+The Account and Customer module includes login, customer search by name/phone, and customer create/update/delete. `DatabaseConnection` is a lazy-holder Singleton; it creates JDBC connections on demand so each repository operation can close its own connection safely.
 
 ## Team responsibilities and patterns
 

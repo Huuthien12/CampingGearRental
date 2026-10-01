@@ -53,6 +53,7 @@ class CheckoutServiceTest {
     void rejectsMissingOrAlreadyPaidPaymentStatus() {
         RentalOrder missingStatus = order(LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 21),
                 detail("100000.00", 1));
+        missingStatus.setPaymentStatus(null);
         RentalOrder paidOrder = order(LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 21),
                 detail("100000.00", 1));
         paidOrder.setPaymentStatus(PaymentStatus.PAID);
