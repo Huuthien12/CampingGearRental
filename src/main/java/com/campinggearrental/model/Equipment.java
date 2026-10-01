@@ -43,6 +43,9 @@ public class Equipment {
                     "Số lượng khả dụng phải trong khoảng 0..totalQuantity");
         }
         this.equipmentId = equipmentId.trim();
+        if (this.equipmentId.length() > 20) {
+            throw new IllegalArgumentException("equipment id must not exceed 20 characters");
+        }
         this.totalQuantity = totalQuantity;
         this.availableQuantity = availableQuantity;
         setName(name);
@@ -115,6 +118,9 @@ public class Equipment {
             throw new IllegalArgumentException("Tên thiết bị không được rỗng");
         }
         this.name = name.trim();
+        if (this.name.length() > 150) {
+            throw new IllegalArgumentException("equipment name must not exceed 150 characters");
+        }
     }
 
     public String getCategoryId() {
@@ -126,6 +132,9 @@ public class Equipment {
             throw new IllegalArgumentException("Danh mục không hợp lệ");
         }
         this.categoryId = categoryId.trim();
+        if (this.categoryId.length() > 20) {
+            throw new IllegalArgumentException("category id must not exceed 20 characters");
+        }
     }
 
     public BigDecimal getPricePerDay() {

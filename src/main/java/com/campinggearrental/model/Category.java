@@ -9,6 +9,9 @@ public class Category {
             throw new IllegalArgumentException("Mã danh mục không được rỗng");
         }
         this.categoryId = categoryId.trim();
+        if (this.categoryId.length() > 20) {
+            throw new IllegalArgumentException("category id must not exceed 20 characters");
+        }
         setName(name);
     }
 
@@ -25,6 +28,9 @@ public class Category {
             throw new IllegalArgumentException("Tên danh mục không được rỗng");
         }
         this.name = name.trim();
+        if (this.name.length() > 100) {
+            throw new IllegalArgumentException("category name must not exceed 100 characters");
+        }
     }
 
     @Override
