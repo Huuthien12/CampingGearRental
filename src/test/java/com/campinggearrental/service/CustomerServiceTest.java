@@ -35,7 +35,37 @@ class CustomerServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.add(" ", "0900000002", "", ""));
         assertThrows(IllegalArgumentException.class,
+                () -> service.add("New", " ", "", ""));
+        assertThrows(IllegalArgumentException.class,
                 () -> service.add("New", "0900000001", "", ""));
+    }
+
+    @Test
+    void updateAllowsTheCustomersExistingPhone() throws SQLException {
+        InMemoryCustomerRepository repository = new InMemoryCustomerRepository();
+        Customer existing = new Customer("CUS001", "Existing", "0900000001", "", "");
+        repository.customers.add(existing);
+
+        new CustomerService(repository).update(new Customer("CUS001", "Updated", "0900000001", "", ""));
+
+        assertEquals("Updated", repository.customers.getFirst().fullName());
+    }
+
+    @Test
+    void searchTreatsNullAndBlankKeywordsAsFindAll() throws SQLException {
+        InMemoryCustomerRepository repository = new InMemoryCustomerRepository();
+        repository.customers.add(new Customer("CUS001", "Existing", "0900000001", "", ""));
+        CustomerService service = new CustomerService(repository);
+
+        assertEquals(repository.customers, service.search(null));
+        assertEquals(repository.customers, service.search("  "));
+    }
+
+    @Test
+    void deleteRejectsBlankId() {
+        CustomerService service = new CustomerService(new InMemoryCustomerRepository());
+
+        assertThrows(IllegalArgumentException.class, () -> service.delete("  "));
     }
 
     private static class InMemoryCustomerRepository implements CustomerRepository {

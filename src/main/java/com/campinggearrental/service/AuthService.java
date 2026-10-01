@@ -12,7 +12,7 @@ public class AuthService {
     }
 
     public boolean login(String username, String password) throws SQLException {
-        if (username == null || username.isBlank() || password == null || password.isEmpty()) {
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
             return false;
         }
         return userRepository.authenticate(username.trim(), password);

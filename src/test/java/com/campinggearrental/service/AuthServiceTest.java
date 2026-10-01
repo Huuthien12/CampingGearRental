@@ -27,5 +27,13 @@ class AuthServiceTest {
 
         assertFalse(service.login("  ", "password"));
         assertFalse(service.login("admin", ""));
+        assertFalse(service.login("admin", "  "));
+    }
+
+    @Test
+    void returnsFalseForInvalidCredentials() throws SQLException {
+        AuthService service = new AuthService((username, password) -> false);
+
+        assertFalse(service.login("admin", "wrong-password"));
     }
 }
