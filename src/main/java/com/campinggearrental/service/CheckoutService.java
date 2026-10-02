@@ -17,9 +17,21 @@ public class CheckoutService {
 
     public void confirmPayment(RentalOrder rentalOrder) {
         Objects.requireNonNull(rentalOrder, "rentalOrder must not be null");
+        requireUnpaid(rentalOrder);
+        rentalOrder.setPaymentStatus(PaymentStatus.PAID);
+    }
+
+    public PricingService.PricingResult refreshAndConfirmPayment(RentalOrder rentalOrder) {
+        Objects.requireNonNull(rentalOrder, "rentalOrder must not be null");
+        requireUnpaid(rentalOrder);
+        PricingService.PricingResult result = refresh(rentalOrder);
+        rentalOrder.setPaymentStatus(PaymentStatus.PAID);
+        return result;
+    }
+
+    private static void requireUnpaid(RentalOrder rentalOrder) {
         if (rentalOrder.getPaymentStatus() != PaymentStatus.UNPAID) {
             throw new IllegalStateException("only unpaid orders can be paid");
         }
-        rentalOrder.setPaymentStatus(PaymentStatus.PAID);
     }
 }
