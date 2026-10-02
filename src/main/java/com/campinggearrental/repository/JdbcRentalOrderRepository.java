@@ -62,8 +62,12 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
 
     @Override
     public Optional<RentalOrder> findById(String id) throws SQLException {
-        try (Connection connection = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT " + ORDER_COLUMNS + " FROM rental_orders WHERE id = ?")) {
+        try (Connection connection = DatabaseConnection.getInstance().getConnection()) { return findById(connection, id); }
+    }
+
+    @Override
+    public Optional<RentalOrder> findById(Connection connection, String id) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT " + ORDER_COLUMNS + " FROM rental_orders WHERE id = ?")) {
             statement.setString(1, id);
             try (ResultSet results = statement.executeQuery()) {
                 return results.next() ? Optional.of(readOrder(connection, results)) : Optional.empty();
