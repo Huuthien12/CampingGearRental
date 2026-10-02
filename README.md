@@ -30,6 +30,16 @@ Create a MySQL database, then run `database/schema.sql` followed by `database/se
 
 The application connects to `jdbc:mysql://localhost:3306/camping_gear_rental` by default with username `root` and an empty password. Override the connection settings with `CAMPING_DB_URL`, `CAMPING_DB_USERNAME`, and `CAMPING_DB_PASSWORD`, or the matching `camping.db.url`, `camping.db.username`, and `camping.db.password` Java system properties. The demo schema stores the seed password as plain text; use hashed passwords before using real accounts.
 
+Run `database/schema.sql` and then `database/seed.sql` in a MySQL 8+ database named `camping_gear_rental`. The confirmed demo login is `admin` / `admin123`; it is seed data only, not a production credential.
+
+## Demo workflow
+
+1. Log in, then create/select a customer and available equipment.
+2. Create a rental draft using `CUS001`, valid dates, and equipment entries such as `EQ001:2`.
+3. Confirm: `PENDING` becomes `CONFIRMED` and available inventory decreases once. Hand over: state becomes `RENTED` without another inventory change.
+4. Load the rental ID in Checkout, refresh pricing, then confirm payment: totals use the detail's historical `unitPrice`, and `UNPAID` becomes `PAID` without changing inventory or rental state.
+5. Return the rental with an actual date: `RENTED` becomes `RETURNED` and inventory is restored.
+
 ## Project structure
 
 ```text

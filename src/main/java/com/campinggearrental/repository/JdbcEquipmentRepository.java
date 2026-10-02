@@ -17,8 +17,12 @@ public class JdbcEquipmentRepository implements EquipmentRepository {
     public List<Equipment> findAll() throws SQLException { return query("SELECT " + COLUMNS + " FROM equipment ORDER BY name", null); }
 
     public Optional<Equipment> findById(String id) throws SQLException {
-        try (Connection connection = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT " + COLUMNS + " FROM equipment WHERE id = ?")) {
+        try (Connection connection = DatabaseConnection.getInstance().getConnection()) { return findById(connection, id); }
+    }
+
+    @Override
+    public Optional<Equipment> findById(Connection connection, String id) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT " + COLUMNS + " FROM equipment WHERE id = ?")) {
             statement.setString(1, id);
             try (ResultSet results = statement.executeQuery()) { return results.next() ? Optional.of(read(results)) : Optional.empty(); }
         }
@@ -39,8 +43,12 @@ public class JdbcEquipmentRepository implements EquipmentRepository {
     }
 
     public void update(Equipment equipment) throws SQLException {
-        try (Connection connection = DatabaseConnection.getInstance().getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE equipment SET name=?, category_id=?, price_per_day=?, total_quantity=?, available_quantity=?, status=? WHERE id=?")) {
+        try (Connection connection = DatabaseConnection.getInstance().getConnection()) { update(connection, equipment); }
+    }
+
+    @Override
+    public void update(Connection connection, Equipment equipment) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE equipment SET name=?, category_id=?, price_per_day=?, total_quantity=?, available_quantity=?, status=? WHERE id=?")) {
             statement.setString(1, equipment.getName()); statement.setString(2, equipment.getCategoryId());
             statement.setBigDecimal(3, equipment.getPricePerDay()); statement.setInt(4, equipment.getTotalQuantity());
             statement.setInt(5, equipment.getAvailableQuantity()); statement.setString(6, equipment.getStatus().name());
