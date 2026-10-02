@@ -21,6 +21,7 @@ import javafx.scene.layout.VBox;
 /** Standalone B-module view; application navigation is wired during final integration. */
 public class EquipmentController {
     private final EquipmentService service;
+    private final Runnable onBack;
     private final TableView<Equipment> table = new TableView<>();
     private final TextField search = new TextField();
     private final TextField id = new TextField();
@@ -30,7 +31,8 @@ public class EquipmentController {
     private final TextField total = new TextField();
     private Equipment selected;
 
-    public EquipmentController(EquipmentService service) { this.service = service; }
+    public EquipmentController(EquipmentService service) { this(service, () -> { }); }
+    public EquipmentController(EquipmentService service, Runnable onBack) { this.service = service; this.onBack = onBack; }
 
     public Parent createView() {
         addColumn("ID", Equipment::getEquipmentId); addColumn("Name", Equipment::getName); addColumn("Category", Equipment::getCategoryId);
@@ -42,7 +44,7 @@ public class EquipmentController {
         Button update = new Button("Update"); update.setOnAction(e -> save(true));
         Button toggle = new Button("Activate/Deactivate"); toggle.setOnAction(e -> toggleStatus());
         VBox form = new VBox(8, new HBox(8, id, name, category, price, total), new HBox(8, add, update, toggle)); form.setPadding(new Insets(12));
-        BorderPane page = new BorderPane(table); page.setTop(search); page.setBottom(form); BorderPane.setMargin(search, new Insets(12)); refresh(); return page;
+        Button back = new Button("Back"); back.setOnAction(e -> onBack.run()); VBox header = new VBox(8, search, back); BorderPane page = new BorderPane(table); page.setTop(header); page.setBottom(form); BorderPane.setMargin(header, new Insets(12)); refresh(); return page;
     }
 
     private void addColumn(String title, Text value) { TableColumn<Equipment, String> column = new TableColumn<>(title); column.setCellValueFactory(c -> new ReadOnlyStringWrapper(value.value(c.getValue()))); table.getColumns().add(column); }
