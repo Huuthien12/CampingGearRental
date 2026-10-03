@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class WebConfiguration {
+    @Bean CategoryRepository categoryRepository() { return new JdbcCategoryRepository(); }
+    @Bean CategoryService categoryService(CategoryRepository r) { return new CategoryService(r); }
     @Bean CustomerRepository customerRepository() { return new JdbcCustomerRepository(); }
     @Bean EquipmentRepository equipmentRepository() { return new JdbcEquipmentRepository(); }
     @Bean RentalOrderRepository rentalOrderRepository() { return new JdbcRentalOrderRepository(); }
