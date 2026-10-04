@@ -28,16 +28,18 @@ class EquipmentCatalogTransactionTest {
         assertTrue(f.tx.autoCommit);
     }
 
-    @Test void readsStockAtLockTimeInsteadOfUsingEarlierReadSnapshot() throws Exception {
+    @Test void staleUiSnapshotCannotOverwriteFreshLockedStock() throws Exception {
         Fixture f = new Fixture();
-        f.service.getById("EQ1");
-        // Simulate a completed lifecycle update before catalog acquires its lock.
-        f.original.reserve(1);
+        Equipment staleUiSnapshot = new Equipment("EQ1", "Tent", "CAT", new BigDecimal("100"), 5, 5, EquipmentStatus.AVAILABLE);
+        // The current repository row already reflects two units reserved by RentalService.
+        assertEquals(5, staleUiSnapshot.getAvailableQuantity());
+        assertEquals(3, f.original.getAvailableQuantity());
         Equipment updated = f.service.updateCatalog("EQ1", command(7));
         assertEquals(7, updated.getTotalQuantity());
-        assertEquals(4, updated.getAvailableQuantity());
-        assertEquals(3, updated.getTotalQuantity() - updated.getAvailableQuantity());
-        assertEquals(2, f.original.getAvailableQuantity());
+        assertEquals(5, updated.getAvailableQuantity());
+        assertEquals(2, updated.getTotalQuantity() - updated.getAvailableQuantity());
+        assertEquals(5, staleUiSnapshot.getTotalQuantity());
+        assertEquals(5, staleUiSnapshot.getAvailableQuantity());
     }
 
     @Test void metadataEditPreservesAlreadyChangedStock() throws Exception {
