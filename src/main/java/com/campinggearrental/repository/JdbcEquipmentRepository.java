@@ -28,6 +28,17 @@ public class JdbcEquipmentRepository implements EquipmentRepository {
         }
     }
 
+    @Override
+    public Optional<Equipment> findByIdForUpdate(Connection connection, String id) throws SQLException {
+        if (connection.getAutoCommit()) throw new SQLException("locking requires an active transaction");
+        try (PreparedStatement statement = connection.prepareStatement("SELECT " + COLUMNS + " FROM equipment WHERE id = ? FOR UPDATE")) {
+            statement.setString(1, id);
+            try (ResultSet results = statement.executeQuery()) {
+                return results.next() ? Optional.of(read(results)) : Optional.empty();
+            }
+        }
+    }
+
     public List<Equipment> search(String keyword) throws SQLException {
         String pattern = "%" + keyword + "%";
         return query("SELECT " + COLUMNS + " FROM equipment WHERE name LIKE ? OR category_id LIKE ? ORDER BY name", statement -> {

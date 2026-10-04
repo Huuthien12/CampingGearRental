@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Equipment | Camping Gear Rental</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-success"><div class="container">
+    <a class="navbar-brand" th:href="@{/}">Camping Gear Rental</a>
+    <a class="text-white" th:href="@{/equipment}">Equipment</a>
+</div></nav>
+<main class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>Equipment</h1><a class="btn btn-success" th:href="@{/equipment/new}">Add equipment</a>
+    </div>
+    <div class="alert alert-success" role="status" th:if="${success}" th:text="${success}"></div>
+    <form method="get" th:action="@{/equipment}" class="mb-4">
+        <label for="q" class="form-label">Search by name or category ID</label>
+        <div class="input-group"><input id="q" name="q" class="form-control" th:value="${q}">
+            <button class="btn btn-outline-success" type="submit">Search</button>
+            <a class="btn btn-outline-secondary" th:href="@{/equipment}">Clear</a>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <caption>Prices per day in VND. Stock shows available / total.</caption>
+            <thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Category</th>
+                <th scope="col">Price/day</th><th scope="col">Available / Total</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+            <tbody>
+            <tr th:each="item : ${equipment}">
+                <td th:text="${item.equipmentId}"></td><td th:text="${item.name}"></td>
+                <td><span th:text="${categoryNames[item.categoryId] ?: item.categoryId}"></span>
+                    <small class="d-block text-muted" th:text="${item.categoryId}"></small></td>
+                <td th:text="${#numbers.formatDecimal(item.pricePerDay, 1, 'COMMA', 2, 'POINT')}"></td>
+                <td><span th:text="${item.availableQuantity + ' / ' + item.totalQuantity}"></span>
+                    <span class="badge text-bg-warning ms-1" th:if="${item.availableQuantity == 0}">Out of stock</span></td>
+                <td><span class="badge" th:classappend="${item.status.name() == 'AVAILABLE' ? 'text-bg-success' : 'text-bg-secondary'}" th:text="${item.status}"></span></td>
+                <td><a class="btn btn-sm btn-outline-success" th:href="@{/equipment/{id}/edit(id=${item.equipmentId})}" th:aria-label="${'Edit ' + item.name}">Edit</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(equipment)}"><td colspan="7" class="text-center text-muted py-4">No equipment found.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body></html>
