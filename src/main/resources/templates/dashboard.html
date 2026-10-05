@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard | Camping Gear Rental</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-success">
+    <div class="container">
+        <span class="navbar-brand">Camping Gear Rental</span>
+        <form method="post" th:action="@{/logout}">
+            <button class="btn btn-outline-light btn-sm" type="submit">Đăng xuất</button>
+        </form>
+    </div>
+</nav>
+<main class="container py-5">
+    <h1>Dashboard</h1>
+    <p class="lead">Xin chào, <span th:text="${username}">nhân viên</span>.</p>
+</main>
+</body>
+</html>

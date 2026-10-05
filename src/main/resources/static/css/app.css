@@ -1,1 +1,28 @@
 body { min-height: 100vh; }
+
+.login-page {
+	display: grid;
+	min-height: 100vh;
+	place-items: center;
+	padding: 24px;
+	background: #f2f5f1;
+}
+
+.login-panel {
+	width: min(100%, 420px);
+	padding: 36px;
+	border-top: 4px solid #198754;
+	background: #fff;
+	box-shadow: 0 12px 36px rgb(28 48 35 / 10%);
+}
+
+.login-eyebrow {
+	color: #198754;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+}
+
+@media (max-width: 480px) {
+	.login-panel { padding: 28px 22px; }
+}
