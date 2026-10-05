@@ -18,6 +18,18 @@ public class JdbcCustomerRepository implements CustomerRepository {
     }
 
     @Override
+    public Optional<Customer> findById(String id) throws SQLException {
+        String sql = "SELECT id, full_name, phone, email, address FROM customers WHERE id = ?";
+        try (Connection connection = DatabaseConnection.getInstance().getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, id);
+            try (ResultSet results = statement.executeQuery()) {
+                return results.next() ? Optional.of(readCustomer(results)) : Optional.empty();
+            }
+        }
+    }
+
+    @Override
     public List<Customer> search(String keyword) throws SQLException {
         String sql = "SELECT id, full_name, phone, email, address FROM customers "
                 + "WHERE full_name LIKE ? OR phone LIKE ? ORDER BY full_name";

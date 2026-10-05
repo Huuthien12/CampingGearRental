@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface CustomerRepository {
     List<Customer> findAll() throws SQLException;
 
+    Optional<Customer> findById(String id) throws SQLException;
+
     List<Customer> search(String keyword) throws SQLException;
 
     Optional<Customer> findByPhone(String phone) throws SQLException;
