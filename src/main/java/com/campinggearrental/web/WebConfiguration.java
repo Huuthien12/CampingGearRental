@@ -12,6 +12,7 @@ public class WebConfiguration {
     @Bean CustomerRepository customerRepository() { return new JdbcCustomerRepository(); }
     @Bean EquipmentRepository equipmentRepository() { return new JdbcEquipmentRepository(); }
     @Bean RentalOrderRepository rentalOrderRepository() { return new JdbcRentalOrderRepository(); }
+    @Bean RentalOrderService rentalOrderService(RentalOrderRepository r) { return new RentalOrderService(r); }
     @Bean CustomerService customerService(CustomerRepository r) { return new CustomerService(r); }
     @Bean EquipmentService equipmentService(EquipmentRepository r) { return new EquipmentService(r); }
     @Bean RentalService rentalService(CustomerRepository c, EquipmentRepository e, RentalOrderRepository r) { return new RentalService(c,e,r); }
