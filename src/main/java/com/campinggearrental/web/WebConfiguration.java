@@ -15,6 +15,7 @@ public class WebConfiguration {
     @Bean CustomerService customerService(CustomerRepository r) { return new CustomerService(r); }
     @Bean EquipmentService equipmentService(EquipmentRepository r) { return new EquipmentService(r); }
     @Bean RentalService rentalService(CustomerRepository c, EquipmentRepository e, RentalOrderRepository r) { return new RentalService(c,e,r); }
+    @Bean CampingPackageDraftService campingPackageDraftService(RentalService r) { return new CampingPackageDraftService(r); }
     @Bean PricingService pricingService() { return new PricingService(); }
     @Bean CheckoutService checkoutService(PricingService p) { return new CheckoutService(new RentalPricingAdapter(p)); }
     @Bean PersistedCheckoutService persistedCheckoutService(RentalOrderRepository r, CheckoutService c) { return new PersistedCheckoutService(r,c); }
