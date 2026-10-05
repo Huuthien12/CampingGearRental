@@ -70,6 +70,7 @@ class RentalEquipmentLockingTest {
         order.setDetails(reversed ? List.of(detail("B", 2), detail("A", 1)) : List.of(detail("A", 1), detail("B", 2)));
         CustomerRepository customers = new CustomerRepository() {
             public List<Customer> findAll() { return List.of(); }
+            public Optional<Customer> findById(String id) { return Optional.empty(); }
             public List<Customer> search(String keyword) { return List.of(); }
             public Optional<Customer> findByPhone(String phone) { return Optional.empty(); }
             public void insert(Customer customer) { }

@@ -204,6 +204,7 @@ class CampingPackageDraftServiceTest {
 
     private static class Customers implements CustomerRepository {
         public List<Customer> findAll() { return List.of(new Customer("CUS001", "Customer", "0900", "", "")); }
+        public Optional<Customer> findById(String id) { return findAll().stream().filter(customer -> customer.id().equals(id)).findFirst(); }
         public List<Customer> search(String keyword) { return List.of(); }
         public Optional<Customer> findByPhone(String phone) { return Optional.empty(); }
         public void insert(Customer customer) { throw new AssertionError("Unexpected customer write"); }
