@@ -8,17 +8,11 @@
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
 <body>
-<nav class="navbar navbar-dark bg-success">
-    <div class="container">
-        <span class="navbar-brand">Camping Gear Rental</span>
-        <form method="post" th:action="@{/logout}">
-            <button class="btn btn-outline-light btn-sm" type="submit">Đăng xuất</button>
-        </form>
-    </div>
-</nav>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
 <main class="container py-5">
     <h1>Dashboard</h1>
     <p class="lead">Xin chào, <span th:text="${username}">nhân viên</span>.</p>
+    <a class="btn btn-success" th:href="@{/customers}">Khách hàng</a>
 </main>
 </body>
 </html>

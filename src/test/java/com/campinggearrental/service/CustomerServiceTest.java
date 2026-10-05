@@ -62,6 +62,18 @@ class CustomerServiceTest {
     }
 
     @Test
+    void findByIdTrimsIdAndReturnsEmptyForMissingOrBlankIds() throws SQLException {
+        InMemoryCustomerRepository repository = new InMemoryCustomerRepository();
+        Customer customer = new Customer("CUS001", "Existing", "0900000001", "", "");
+        repository.customers.add(customer);
+        CustomerService service = new CustomerService(repository);
+
+        assertEquals(Optional.of(customer), service.findById(" CUS001 "));
+        assertEquals(Optional.empty(), service.findById("CUS999"));
+        assertEquals(Optional.empty(), service.findById("  "));
+    }
+
+    @Test
     void deleteRejectsBlankId() {
         CustomerService service = new CustomerService(new InMemoryCustomerRepository());
 
@@ -74,6 +86,11 @@ class CustomerServiceTest {
         @Override
         public List<Customer> findAll() {
             return List.copyOf(customers);
+        }
+
+        @Override
+        public Optional<Customer> findById(String id) {
+            return customers.stream().filter(customer -> customer.id().equals(id)).findFirst();
         }
 
         @Override

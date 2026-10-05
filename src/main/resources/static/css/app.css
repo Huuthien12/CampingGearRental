@@ -26,3 +26,6 @@ body { min-height: 100vh; }
 @media (max-width: 480px) {
 	.login-panel { padding: 28px 22px; }
 }
+
+.customer-form { max-width: 680px; }
+.customer-details { max-width: 760px; }
