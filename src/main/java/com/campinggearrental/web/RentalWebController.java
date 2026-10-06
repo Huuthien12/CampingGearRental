@@ -5,6 +5,7 @@ import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
 import com.campinggearrental.service.CampingPackageDraftService;
 import com.campinggearrental.service.RentalOrderService;
+import com.campinggearrental.service.RentalService;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -27,11 +28,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class RentalWebController {
     private final RentalOrderService rentalOrderService;
     private final CampingPackageDraftService campingPackageDraftService;
+    private final RentalService rentalService;
 
     public RentalWebController(RentalOrderService rentalOrderService,
-            CampingPackageDraftService campingPackageDraftService) {
+            CampingPackageDraftService campingPackageDraftService, RentalService rentalService) {
         this.rentalOrderService = rentalOrderService;
         this.campingPackageDraftService = campingPackageDraftService;
+        this.rentalService = rentalService;
     }
 
     @GetMapping
@@ -84,6 +87,36 @@ public class RentalWebController {
         return newForm(model);
     }
 
+    @PostMapping("/{id}/confirm")
+    public String confirm(@PathVariable("id") String id, RedirectAttributes redirect) {
+        return lifecycle(id, "Rental confirmed.", rentalService::confirmRental, redirect);
+    }
+
+    @PostMapping("/{id}/rent")
+    public String rent(@PathVariable("id") String id, RedirectAttributes redirect) {
+        return lifecycle(id, "Rental marked as rented.", rentalService::rentRental, redirect);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public String cancel(@PathVariable("id") String id, RedirectAttributes redirect) {
+        return lifecycle(id, "Rental cancelled.", rentalService::cancelRental, redirect);
+    }
+
+    @PostMapping("/{id}/return")
+    public String returnRental(@PathVariable("id") String id, RedirectAttributes redirect) {
+        return lifecycle(id, "Rental returned.", rentalId -> rentalService.returnRental(rentalId, LocalDate.now()), redirect);
+    }
+
+    private String lifecycle(String id, String successMessage, LifecycleAction action, RedirectAttributes redirect) {
+        try {
+            action.apply(id);
+            redirect.addFlashAttribute("success", successMessage);
+        } catch (IllegalArgumentException | IllegalStateException | SQLException exception) {
+            redirect.addFlashAttribute("error", "Rental lifecycle action could not be completed.");
+        }
+        return "redirect:/rentals/" + id;
+    }
+
     private void validate(RentalDraftForm form, BindingResult errors) {
         if (form.getCustomerId() == null || form.getCustomerId().isBlank()) errors.rejectValue("customerId", "required", "Customer ID is required.");
         LocalDate rentalDate = form.getRentalDate();
@@ -100,5 +133,10 @@ public class RentalWebController {
 
     private static String stateName(RentalOrder order) {
         return RentalOrderStatus.fromState(order.getCurrentState()).name();
+    }
+
+    @FunctionalInterface
+    private interface LifecycleAction {
+        RentalOrder apply(String id) throws SQLException;
     }
 }
