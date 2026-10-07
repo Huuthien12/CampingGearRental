@@ -95,37 +95,37 @@ class RentalWebControllerTest {
     }
 
     @Test void confirmsPendingRentalByDelegatingToService() throws Exception {
-        mockMvc.perform(post("/rentals/RENT001/confirm")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental confirmed."));
         verify(rentalService).confirmRental("RENT001");
     }
 
     @Test void cancelsPendingRentalByDelegatingToService() throws Exception {
-        mockMvc.perform(post("/rentals/RENT001/cancel")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/cancel").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental cancelled."));
         verify(rentalService).cancelRental("RENT001");
     }
 
     @Test void rentsConfirmedRentalByDelegatingToService() throws Exception {
-        mockMvc.perform(post("/rentals/RENT001/rent")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/rent").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental marked as rented."));
         verify(rentalService).rentRental("RENT001");
     }
 
     @Test void cancelsConfirmedRentalByDelegatingToService() throws Exception {
-        mockMvc.perform(post("/rentals/RENT002/cancel")).andExpect(redirectedUrl("/rentals/RENT002"));
+        mockMvc.perform(post("/rentals/RENT002/cancel").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT002"));
         verify(rentalService).cancelRental("RENT002");
     }
 
     @Test void returnsRentedRentalByDelegatingToService() throws Exception {
-        mockMvc.perform(post("/rentals/RENT001/return")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/return").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental returned."));
         verify(rentalService).returnRental("RENT001", LocalDate.now());
     }
 
     @Test void rejectsInvalidOrRepeatedTransitionSafely() throws Exception {
         when(rentalService.rentRental("RENT001")).thenThrow(new IllegalStateException("invalid transition"));
-        mockMvc.perform(post("/rentals/RENT001/rent")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/rent").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
         verify(rentalService).rentRental("RENT001");
     }
@@ -133,9 +133,9 @@ class RentalWebControllerTest {
     @Test void handlesUnknownRentalAndInsufficientStockSafely() throws Exception {
         when(rentalService.confirmRental("MISSING")).thenThrow(new IllegalArgumentException("not found"));
         when(rentalService.confirmRental("RENT001")).thenThrow(new IllegalStateException("insufficient stock"));
-        mockMvc.perform(post("/rentals/MISSING/confirm")).andExpect(redirectedUrl("/rentals/MISSING"))
+        mockMvc.perform(post("/rentals/MISSING/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/MISSING"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
-        mockMvc.perform(post("/rentals/RENT001/confirm")).andExpect(redirectedUrl("/rentals/RENT001"))
+        mockMvc.perform(post("/rentals/RENT001/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
         verify(rentalService).confirmRental("MISSING");
         verify(rentalService).confirmRental("RENT001");
