@@ -13,6 +13,7 @@ import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @WebMvcTest(WebLoginController.class)
 @Import(WebConfiguration.class)
@@ -63,6 +65,20 @@ class WebLoginControllerTest {
         mockMvc.perform(get("/dashboard"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
+    void authenticatedDashboardShowsAllModuleNavigation() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+
+        mockMvc.perform(get("/dashboard").session(session))
+                .andExpect(status().isOk())
+                .andExpect(view().name("dashboard"))
+                .andExpect(content().string(containsString("href=\"/customers\"")))
+                .andExpect(content().string(containsString("href=\"/equipment\"")))
+                .andExpect(content().string(containsString("href=\"/rentals\"")))
+                .andExpect(content().string(containsString("href=\"/checkout\"")));
     }
 
     @Test

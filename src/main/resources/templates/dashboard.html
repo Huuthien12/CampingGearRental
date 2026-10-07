@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,8 +11,13 @@
 <nav th:replace="~{fragments/navigation :: navigation}"></nav>
 <main class="container py-5">
     <h1>Dashboard</h1>
-    <p class="lead">Xin chào, <span th:text="${username}">nhân viên</span>.</p>
-    <a class="btn btn-success" th:href="@{/customers}">Khách hàng</a>
+    <p class="lead">Welcome, <span th:text="${username}">staff member</span>.</p>
+    <div class="row row-cols-1 row-cols-md-2 g-3 mt-1">
+        <div class="col"><a class="card card-body text-decoration-none text-success" th:href="@{/customers}">Customers</a></div>
+        <div class="col"><a class="card card-body text-decoration-none text-success" th:href="@{/equipment}">Equipment</a></div>
+        <div class="col"><a class="card card-body text-decoration-none text-success" th:href="@{/rentals}">Rentals</a></div>
+        <div class="col"><a class="card card-body text-decoration-none text-success" th:href="@{/checkout}">Checkout</a></div>
+    </div>
 </main>
 </body>
 </html>
