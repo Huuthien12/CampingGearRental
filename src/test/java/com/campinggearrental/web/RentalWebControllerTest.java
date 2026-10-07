@@ -3,6 +3,7 @@ package com.campinggearrental.web;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -139,6 +140,11 @@ class RentalWebControllerTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
         verify(rentalService).confirmRental("MISSING");
         verify(rentalService).confirmRental("RENT001");
+    }
+
+    @Test void detailTemplateLinksToCheckoutForTheCurrentRental() throws Exception {
+        String template = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
+        assertTrue(template.contains("@{/checkout/{id}(id=${order.id})}"));
     }
 
     private static RentalOrder order(String id) {
