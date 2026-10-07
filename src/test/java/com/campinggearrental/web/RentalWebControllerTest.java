@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(RentalWebController.class)
@@ -40,7 +41,7 @@ class RentalWebControllerTest {
     @Test void listsPersistedRentals() throws Exception {
         RentalOrder order = order("RENT001");
         when(rentalOrderService.findAll()).thenReturn(List.of(order));
-        mockMvc.perform(get("/rentals")).andExpect(status().isOk()).andExpect(view().name("rentals/list"))
+        mockMvc.perform(get("/rentals").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("rentals/list"))
                 .andExpect(model().attribute("rentals", List.of(order)));
         verify(rentalOrderService).findAll();
     }
@@ -48,18 +49,18 @@ class RentalWebControllerTest {
     @Test void displaysPersistedDetailWithHistoricalPrice() throws Exception {
         RentalOrder order = order("RENT001");
         when(rentalOrderService.findById("RENT001")).thenReturn(order);
-        mockMvc.perform(get("/rentals/RENT001")).andExpect(status().isOk()).andExpect(view().name("rentals/detail"))
+        mockMvc.perform(get("/rentals/RENT001").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("rentals/detail"))
                 .andExpect(model().attribute("order", order));
         verify(rentalOrderService).findById("RENT001");
     }
 
     @Test void returnsNotFoundViewForUnknownRental() throws Exception {
         when(rentalOrderService.findById("MISSING")).thenReturn(null);
-        mockMvc.perform(get("/rentals/MISSING")).andExpect(status().isOk()).andExpect(view().name("error/404"));
+        mockMvc.perform(get("/rentals/MISSING").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("error/404"));
     }
 
     @Test void opensDraftFormWithSupportedPackageTypes() throws Exception {
-        mockMvc.perform(get("/rentals/new")).andExpect(status().isOk()).andExpect(view().name("rentals/new"))
+        mockMvc.perform(get("/rentals/new").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("rentals/new"))
                 .andExpect(model().attributeExists("rentalDraftForm", "packageTypes"));
     }
 
@@ -68,7 +69,7 @@ class RentalWebControllerTest {
         when(campingPackageDraftService.createDraftFromPackage(eq("CUS001"), eq(LocalDate.of(2026, 10, 5)),
                 eq(LocalDate.of(2026, 10, 7)), eq(CampingPackageType.COUPLE))).thenReturn(order);
         mockMvc.perform(post("/rentals").param("customerId", " CUS001 ").param("rentalDate", "2026-10-05")
-                        .param("expectedReturnDate", "2026-10-07").param("packageType", "COUPLE"))
+                        .param("expectedReturnDate", "2026-10-07").param("packageType", "COUPLE").session(authenticatedSession()))
                 .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/rentals/RENT001"));
         verify(campingPackageDraftService).createDraftFromPackage("CUS001", LocalDate.of(2026, 10, 5),
                 LocalDate.of(2026, 10, 7), CampingPackageType.COUPLE);
@@ -76,7 +77,7 @@ class RentalWebControllerTest {
 
     @Test void keepsSubmittedValuesForInvalidDates() throws Exception {
         mockMvc.perform(post("/rentals").param("customerId", "CUS001").param("rentalDate", "2026-10-07")
-                        .param("expectedReturnDate", "2026-10-05").param("packageType", "SOLO"))
+                        .param("expectedReturnDate", "2026-10-05").param("packageType", "SOLO").session(authenticatedSession()))
                 .andExpect(status().isOk()).andExpect(view().name("rentals/new"))
                 .andExpect(model().attributeHasFieldErrors("rentalDraftForm", "expectedReturnDate"))
                 .andExpect(model().attribute("rentalDraftForm", allOf(hasProperty("customerId", is("CUS001")),
@@ -87,7 +88,7 @@ class RentalWebControllerTest {
     @Test void rejectsInvalidCustomerPackageAndPackageItemOverride() throws Exception {
         mockMvc.perform(post("/rentals").param("customerId", "").param("rentalDate", "2026-10-05")
                         .param("expectedReturnDate", "2026-10-07").param("packageType", "UNKNOWN")
-                        .param("equipmentId", "EQ999").param("quantity", "999"))
+                        .param("equipmentId", "EQ999").param("quantity", "999").session(authenticatedSession()))
                 .andExpect(status().isOk()).andExpect(view().name("rentals/new"))
                 .andExpect(model().attributeHasFieldErrors("rentalDraftForm", "customerId", "packageType"));
         verifyNoInteractions(campingPackageDraftService);
@@ -144,5 +145,11 @@ class RentalWebControllerTest {
         RentalDetail detail = new RentalDetail(); detail.setEquipmentId("EQ001"); detail.setQuantity(2); detail.setUnitPrice(new BigDecimal("100.00"));
         RentalOrder order = new RentalOrder(); order.setId(id); order.setCustomerId("CUS001"); order.setRentalDate(LocalDate.of(2026, 10, 5));
         order.setExpectedReturnDate(LocalDate.of(2026, 10, 7)); order.setPaymentStatus(PaymentStatus.UNPAID); order.setDetails(List.of(detail)); return order;
+    }
+
+    private static MockHttpSession authenticatedSession() {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+        return session;
     }
 }

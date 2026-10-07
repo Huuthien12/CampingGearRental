@@ -1,0 +1,11 @@
+<nav class="navbar navbar-dark bg-success" th:fragment="navigation">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/dashboard}">Camping Gear Rental</a>
+        <div class="d-flex align-items-center gap-3">
+            <a class="text-white text-decoration-none" th:href="@{/customers}">Khách hàng</a>
+            <form method="post" th:action="@{/logout}">
+                <button class="btn btn-outline-light btn-sm" type="submit">Đăng xuất</button>
+            </form>
+        </div>
+    </div>
+</nav>
