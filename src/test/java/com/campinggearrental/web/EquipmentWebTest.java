@@ -56,10 +56,10 @@ class EquipmentWebTest {
     @Test void listRendersCategoryPriceStockStatusAndEditAction() throws Exception {
         HttpResponse<String> response = get("/equipment");
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("Tent category"));
+        assertTrue(response.body().contains("Lều"));
         assertTrue(response.body().contains("100.00"));
         assertTrue(response.body().contains("3 / 5"));
-        assertTrue(response.body().contains("AVAILABLE"));
+        assertTrue(response.body().contains("Sẵn sàng cho thuê"));
         assertTrue(response.body().contains("/equipment/EQ001/edit"));
     }
 
@@ -67,12 +67,13 @@ class EquipmentWebTest {
         assertTrue(get("/equipment?q=Tent").body().contains("EQ001"));
         assertEquals("Tent", repository.lastSearch);
         assertTrue(get("/equipment?q=CAT001").body().contains("EQ001"));
-        assertTrue(get("/equipment?q=missing").body().contains("No equipment found."));
+        assertTrue(get("/equipment?q=missing").body().contains("Chưa có thiết bị phù hợp"));
     }
 
     @Test void newFormLoadsCategoriesAndValidCreateRedirectsWithFeedback() throws Exception {
         String html = get("/equipment/new").body();
-        assertTrue(html.contains("Tent category (CAT001)"));
+        assertTrue(html.contains("Lều (CAT001)"));
+        assertTrue(html.contains("value=\"CAT001\"") && html.contains("value=\"AVAILABLE\""));
         assertFalse(html.contains("name=\"availableQuantity\""));
         HttpResponse<String> response = post("/equipment", valid("EQ002"));
         assertEquals(302, response.statusCode(), response.body());
@@ -85,32 +86,32 @@ class EquipmentWebTest {
         String cookie = response.headers().firstValue("set-cookie").orElseThrow().split(";", 2)[0];
         HttpResponse<String> list = client.send(HttpRequest.newBuilder(URI.create(base + "/equipment"))
                 .header("Cookie", cookie).GET().build(), HttpResponse.BodyHandlers.ofString());
-        assertTrue(list.body().contains("Equipment created successfully."));
+        assertTrue(list.body().contains("Đã thêm thiết bị."));
     }
 
     @Test void invalidPriceIsRejectedWithoutPersistence() throws Exception {
         HttpResponse<String> response = post("/equipment", valid("EQ002").replace("pricePerDay=120", "pricePerDay=0"));
         assertEquals(200, response.statusCode());
-        assertTrue(response.body().contains("Please correct the form"));
+        assertTrue(response.body().contains("Vui lòng kiểm tra lại biểu mẫu"));
         assertFalse(repository.values.containsKey("EQ002"));
     }
 
     @Test void invalidQuantityAndNumericBindingAreRejected() throws Exception {
-        assertTrue(post("/equipment", valid("EQ002").replace("totalQuantity=4", "totalQuantity=-1")).body().contains("Please correct the form"));
-        assertTrue(post("/equipment", valid("EQ002").replace("totalQuantity=4", "totalQuantity=abc")).body().contains("Please correct the form"));
+        assertTrue(post("/equipment", valid("EQ002").replace("totalQuantity=4", "totalQuantity=-1")).body().contains("Vui lòng kiểm tra lại biểu mẫu"));
+        assertTrue(post("/equipment", valid("EQ002").replace("totalQuantity=4", "totalQuantity=abc")).body().contains("Vui lòng kiểm tra lại biểu mẫu"));
         assertFalse(repository.values.containsKey("EQ002"));
     }
 
     @Test void unknownCategoryIsRejectedAndFormRetainsInput() throws Exception {
         String html = post("/equipment", valid("EQ002").replace("categoryId=CAT001", "categoryId=missing")).body();
-        assertTrue(html.contains("Select an existing category."));
+        assertTrue(html.contains("Hãy chọn một loại thiết bị có sẵn."));
         assertTrue(html.contains("New tent"));
         assertFalse(repository.values.containsKey("EQ002"));
     }
 
     @Test void availableGreaterThanTotalInputIsRejected() throws Exception {
         String html = post("/equipment", valid("EQ002") + "&availableQuantity=999").body();
-        assertTrue(html.contains("Available quantity cannot be edited directly."));
+        assertTrue(html.contains("Không thể chỉnh sửa trực tiếp số lượng sẵn sàng."));
         assertFalse(repository.values.containsKey("EQ002"));
         assertThrows(IllegalArgumentException.class, () -> new Equipment("E", "Tent", "CAT001", BigDecimal.ONE,
                 4, 5, EquipmentStatus.AVAILABLE));
@@ -119,7 +120,7 @@ class EquipmentWebTest {
     @Test void editLoadsAndUpdatesWithoutResettingReservedQuantity() throws Exception {
         String html = get("/equipment/EQ001/edit").body();
         assertTrue(html.contains("3 / 5"));
-        assertTrue(html.contains("Tent category (CAT001)"));
+        assertTrue(html.contains("Lều (CAT001)"));
         assertEquals(302, post("/equipment/EQ001/edit", valid("tampered-id")
                 .replace("totalQuantity=4", "totalQuantity=7").replace("status=AVAILABLE", "status=INACTIVE")).statusCode());
         Equipment updated = repository.values.get("EQ001");
@@ -133,7 +134,7 @@ class EquipmentWebTest {
 
     @Test void editBelowReservedQuantityDoesNotMutateExistingData() throws Exception {
         String html = post("/equipment/EQ001/edit", valid("EQ001").replace("totalQuantity=4", "totalQuantity=1")).body();
-        assertTrue(html.contains("Please correct the form"));
+        assertTrue(html.contains("Vui lòng kiểm tra lại biểu mẫu"));
         assertEquals("Tent", repository.values.get("EQ001").getName());
         assertEquals(5, repository.values.get("EQ001").getTotalQuantity());
         assertEquals(3, repository.values.get("EQ001").getAvailableQuantity());
@@ -141,16 +142,16 @@ class EquipmentWebTest {
 
     @Test void editRejectsDirectAvailableQuantityAndInvalidStatus() throws Exception {
         assertTrue(post("/equipment/EQ001/edit", valid("EQ001") + "&availableQuantity=9").body()
-                .contains("Available quantity cannot be edited directly."));
+                .contains("Không thể chỉnh sửa trực tiếp số lượng sẵn sàng."));
         assertTrue(post("/equipment/EQ001/edit", valid("EQ001").replace("status=AVAILABLE", "status=UNKNOWN")).body()
-                .contains("Please correct the form"));
+                .contains("Vui lòng kiểm tra lại biểu mẫu"));
         assertEquals(3, repository.values.get("EQ001").getAvailableQuantity());
     }
 
     @Test void databaseErrorDoesNotExposeSqlOrCredentials() throws Exception {
         repository.failWrites = true;
         String html = post("/equipment", valid("EQ002")).body();
-        assertTrue(html.contains("Unable to save equipment."));
+        assertTrue(html.contains("Không thể lưu thiết bị."));
         assertFalse(html.contains("SECRET_DB_DETAIL"));
         assertFalse(repository.values.containsKey("EQ002"));
     }
@@ -166,7 +167,7 @@ class EquipmentWebTest {
                 valid("EQ001").replace("status=AVAILABLE", "status="))) {
             HttpResponse<String> response = post("/equipment/EQ001/edit", body);
             assertEquals(200, response.statusCode());
-            assertTrue(response.body().contains("Please correct the form"));
+            assertTrue(response.body().contains("Vui lòng kiểm tra lại biểu mẫu"));
             assertSame(current, repository.values.get("EQ001"));
             assertEquals(EquipmentStatus.INACTIVE, current.getStatus());
             assertEquals("Tent", current.getName());
@@ -203,7 +204,7 @@ class EquipmentWebTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration
-    @Import({EquipmentWebController.class, WebErrorHandler.class})
+    @Import({EquipmentWebController.class, PresentationLabels.class, WebErrorHandler.class})
     static class TestConfiguration {
         @Bean MemoryEquipment equipmentRepository() { return new MemoryEquipment(); }
         @Bean EquipmentService equipmentService(MemoryEquipment repository) {
@@ -211,7 +212,7 @@ class EquipmentWebTest {
         }
         @Bean CategoryService categoryService() {
             return new CategoryService(new CategoryRepository() {
-                public List<Category> findAll() { return List.of(new Category("CAT001", "Tent category")); }
+                public List<Category> findAll() { return List.of(new Category("CAT001", "Tent")); }
                 public Optional<Category> findById(String id) { return findAll().stream().filter(c -> c.getCategoryId().equals(id)).findFirst(); }
             });
         }

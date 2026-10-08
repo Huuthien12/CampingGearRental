@@ -3,6 +3,7 @@ package com.campinggearrental.web;
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
 import com.campinggearrental.model.RentalOrderStatus;
+import com.campinggearrental.factory.CampingPackageType;
 import org.springframework.stereotype.Component;
 
 /** Presentation-only Vietnamese labels; persisted values and business rules stay unchanged. */
@@ -49,6 +50,18 @@ public class PresentationLabels {
             case "Chair" -> "Ghế";
             case "Lamp" -> "Đèn";
             case "Stove" -> "Bếp";
+            default -> value;
+        };
+    }
+
+    public String packageType(CampingPackageType value) { return value == null ? "" : packageType(value.name()); }
+
+    public String packageType(String value) {
+        if (value == null) return "";
+        return switch (value) {
+            case "SOLO" -> "Một người";
+            case "COUPLE" -> "Cặp đôi";
+            case "FAMILY" -> "Gia đình";
             default -> value;
         };
     }

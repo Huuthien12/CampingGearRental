@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -16,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.campinggearrental.factory.CampingPackageType;
+import com.campinggearrental.factory.CampingPackageFactory;
 import com.campinggearrental.model.Category;
 import com.campinggearrental.model.Equipment;
 import com.campinggearrental.model.EquipmentStatus;
@@ -29,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -74,8 +77,29 @@ class RentalWebControllerTest {
     }
 
     @Test void opensDraftFormWithSupportedPackageTypes() throws Exception {
+        when(equipmentService.list()).thenReturn(List.of(equipment("EQ001"),
+                new Equipment("EQ002", "Túi ngủ", "CAT001", new BigDecimal("100.00"), 5, 5, EquipmentStatus.AVAILABLE)));
         mockMvc.perform(get("/rentals/new").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("rentals/new"))
-                .andExpect(model().attributeExists("rentalDraftForm", "packageTypes"));
+                .andExpect(model().attributeExists("rentalDraftForm", "packageTypes", "packageItems"))
+                .andExpect(result -> {
+                    Object modelValue = result.getModelAndView().getModel().get("packageItems");
+                    assertTrue(modelValue instanceof Map<?, ?>);
+                    Map<?, ?> packageItems = (Map<?, ?>) modelValue;
+                    for (CampingPackageType type : CampingPackageType.values()) {
+                        List<?> views = (List<?>) packageItems.get(type);
+                        assertEquals(CampingPackageFactory.create(type).items().size(), views.size());
+                        for (int index = 0; index < views.size(); index++) {
+                            RentalWebController.PackageItemView view = (RentalWebController.PackageItemView) views.get(index);
+                            assertEquals(CampingPackageFactory.create(type).items().get(index).equipmentId(), view.equipmentId());
+                            assertEquals(CampingPackageFactory.create(type).items().get(index).quantity(), view.quantity());
+                        }
+                    }
+                    List<?> soloItems = (List<?>) packageItems.get(CampingPackageType.SOLO);
+                    assertEquals("Tent", ((RentalWebController.PackageItemView) soloItems.get(0)).name());
+                    RentalWebController.PackageItemView missing = (RentalWebController.PackageItemView) soloItems.get(2);
+                    assertEquals(missing.equipmentId(), missing.name());
+                });
+        verify(equipmentService).list();
     }
 
     @Test void acceptsExactBrowserFormRequestForServerDefinedPackage() throws Exception {
@@ -222,19 +246,19 @@ class RentalWebControllerTest {
 
     @Test void confirmsPendingRentalByDelegatingToService() throws Exception {
         mockMvc.perform(post("/rentals/RENT001/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental confirmed."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Đã xác nhận đơn thuê."));
         verify(rentalService).confirmRental("RENT001");
     }
 
     @Test void cancelsPendingRentalByDelegatingToService() throws Exception {
         mockMvc.perform(post("/rentals/RENT001/cancel").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental cancelled."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Đã hủy đơn thuê."));
         verify(rentalService).cancelRental("RENT001");
     }
 
     @Test void rentsConfirmedRentalByDelegatingToService() throws Exception {
         mockMvc.perform(post("/rentals/RENT001/rent").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental marked as rented."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Đơn thuê đã chuyển sang đang cho thuê."));
         verify(rentalService).rentRental("RENT001");
     }
 
@@ -245,14 +269,14 @@ class RentalWebControllerTest {
 
     @Test void returnsRentedRentalByDelegatingToService() throws Exception {
         mockMvc.perform(post("/rentals/RENT001/return").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Rental returned."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("success", "Đã ghi nhận trả thiết bị."));
         verify(rentalService).returnRental("RENT001", LocalDate.now());
     }
 
     @Test void rejectsInvalidOrRepeatedTransitionSafely() throws Exception {
         when(rentalService.rentRental("RENT001")).thenThrow(new IllegalStateException("invalid transition"));
         mockMvc.perform(post("/rentals/RENT001/rent").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Không thể thực hiện thao tác vòng đời đơn thuê."));
         verify(rentalService).rentRental("RENT001");
     }
 
@@ -260,9 +284,9 @@ class RentalWebControllerTest {
         when(rentalService.confirmRental("MISSING")).thenThrow(new IllegalArgumentException("not found"));
         when(rentalService.confirmRental("RENT001")).thenThrow(new IllegalStateException("insufficient stock"));
         mockMvc.perform(post("/rentals/MISSING/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/MISSING"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Không thể thực hiện thao tác vòng đời đơn thuê."));
         mockMvc.perform(post("/rentals/RENT001/confirm").session(authenticatedSession())).andExpect(redirectedUrl("/rentals/RENT001"))
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Rental lifecycle action could not be completed."));
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash().attribute("error", "Không thể thực hiện thao tác vòng đời đơn thuê."));
         verify(rentalService).confirmRental("MISSING");
         verify(rentalService).confirmRental("RENT001");
     }
@@ -270,6 +294,18 @@ class RentalWebControllerTest {
     @Test void detailTemplateLinksToCheckoutForTheCurrentRental() throws Exception {
         String template = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
         assertTrue(template.contains("@{/checkout/{id}(id=${order.id})}"));
+    }
+
+    @Test void rentalTemplatesUseVietnameseLabelsAndServerDefinedPackageContents() throws Exception {
+        String list = new String(getClass().getResourceAsStream("/templates/rentals/list.html").readAllBytes());
+        String detail = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
+        String draft = new String(getClass().getResourceAsStream("/templates/rentals/new.html").readAllBytes());
+        assertTrue(list.contains("Đơn thuê") && list.contains("fragments/status-badges"));
+        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("fragments/status-badges"));
+        assertTrue(draft.contains("packageItems.get(type)") && draft.contains("@presentationLabels.packageType(type)"));
+        assertTrue(draft.contains("item.name + ' × ' + item.quantity") && draft.contains("item.equipmentId"));
+        assertTrue(draft.contains("type=\"radio\"") && draft.contains("th:field=\"*{packageType}\""));
+        assertTrue(draft.contains("/css/package-rental.css"));
     }
 
     private static RentalOrder order(String id) {

@@ -52,3 +52,12 @@ body { min-height: 100vh; background: var(--camp-cream); color: var(--camp-deep-
 
 .customer-form { max-width: 680px; }
 .customer-details { max-width: 760px; }
+
+.camping-page-header, .management-filter { padding: 1.25rem; border: 1px solid var(--camp-border); border-radius: 1rem; background: #fff; }
+.section-eyebrow { color: var(--camp-forest); font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
+.package-preview { padding: 1rem; border: 1px solid var(--camp-border); border-radius: .75rem; background: #f4f8e9; }
+.rental-summary dt { color: var(--camp-forest); }
+
+@media (max-width: 480px) {
+	.camping-page-header, .management-filter { padding: 1rem; }
+}

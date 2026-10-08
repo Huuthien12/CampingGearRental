@@ -65,13 +65,13 @@ public class EquipmentWebController {
                 validateCategory(equipment.getCategoryId(), errors);
                 if (!errors.hasErrors()) {
                     equipmentService.create(equipment);
-                    redirect.addFlashAttribute("success", "Equipment created successfully.");
+                    redirect.addFlashAttribute("success", "Đã thêm thiết bị.");
                     return "redirect:/equipment";
                 }
             } catch (IllegalArgumentException | IllegalStateException exception) {
                 errors.reject("invalidEquipment", exception.getMessage());
             } catch (SQLException exception) {
-                errors.reject("saveFailed", "Unable to save equipment. Check the ID is unique and try again.");
+                errors.reject("saveFailed", "Không thể lưu thiết bị. Hãy kiểm tra mã thiết bị và thử lại.");
             }
         }
         return form(model, null);
@@ -96,13 +96,13 @@ public class EquipmentWebController {
                 validateCategory(command.categoryId(), errors);
                 if (!errors.hasErrors()) {
                     equipmentService.updateCatalog(id, command);
-                    redirect.addFlashAttribute("success", "Equipment updated successfully.");
+                    redirect.addFlashAttribute("success", "Đã cập nhật thiết bị.");
                     return "redirect:/equipment";
                 }
             } catch (IllegalArgumentException | IllegalStateException exception) {
                 errors.reject("invalidEquipment", exception.getMessage());
             } catch (SQLException exception) {
-                errors.reject("saveFailed", "Unable to save equipment. Please try again.");
+                errors.reject("saveFailed", "Không thể lưu thiết bị. Vui lòng thử lại.");
             }
         }
         return form(model, current);
@@ -110,7 +110,7 @@ public class EquipmentWebController {
 
     private void validateCategory(String id, BindingResult errors) throws SQLException {
         if (categoryService.findById(id).isEmpty()) {
-            errors.rejectValue("categoryId", "unknownCategory", "Select an existing category.");
+            errors.rejectValue("categoryId", "unknownCategory", "Hãy chọn một loại thiết bị có sẵn.");
         }
     }
 
@@ -118,7 +118,7 @@ public class EquipmentWebController {
         // MVC also offers request headers to the binder; ignored headers are not invalid form input.
         for (String field : errors.getSuppressedFields()) {
             if ("availableQuantity".equalsIgnoreCase(field)) {
-                errors.reject("unsupportedFields", "Available quantity cannot be edited directly.");
+                errors.reject("unsupportedFields", "Không thể chỉnh sửa trực tiếp số lượng sẵn sàng.");
                 break;
             }
         }

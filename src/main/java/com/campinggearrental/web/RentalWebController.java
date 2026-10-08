@@ -1,7 +1,10 @@
 package com.campinggearrental.web;
 
 import jakarta.servlet.http.HttpServletResponse;
+import com.campinggearrental.factory.CampingPackageFactory;
+import com.campinggearrental.factory.CampingPackageItem;
 import com.campinggearrental.factory.CampingPackageType;
+import com.campinggearrental.model.Equipment;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
 import com.campinggearrental.service.CampingPackageDraftService;
@@ -92,24 +95,47 @@ public class RentalWebController {
     public String newForm(Model model) {
         if (!model.containsAttribute("rentalDraftForm")) model.addAttribute("rentalDraftForm", new RentalDraftForm());
         model.addAttribute("packageTypes", CampingPackageType.values());
+        Map<String, String> equipmentNames = packageEquipmentNames();
+        Map<CampingPackageType, List<PackageItemView>> packageItems = new LinkedHashMap<>();
+        for (CampingPackageType type : CampingPackageType.values()) {
+            List<PackageItemView> items = CampingPackageFactory.create(type).items().stream()
+                    .map(item -> packageItemView(item, equipmentNames)).toList();
+            packageItems.put(type, items);
+        }
+        model.addAttribute("packageItems", packageItems);
         return "rentals/new";
+    }
+
+    private Map<String, String> packageEquipmentNames() {
+        Map<String, String> names = new LinkedHashMap<>();
+        try {
+            for (Equipment equipment : equipmentService.list()) names.put(equipment.getEquipmentId(), equipment.getName());
+        } catch (SQLException ignored) {
+            // Package IDs remain a safe presentation fallback when the catalog cannot be read.
+        }
+        return names;
+    }
+
+    private static PackageItemView packageItemView(CampingPackageItem item, Map<String, String> equipmentNames) {
+        String name = equipmentNames.get(item.equipmentId());
+        return new PackageItemView(item.equipmentId(), name == null || name.isBlank() ? item.equipmentId() : name, item.quantity());
     }
 
     @PostMapping
     public String create(@ModelAttribute("rentalDraftForm") RentalDraftForm form, BindingResult errors,
             Model model, RedirectAttributes redirect) {
-        rejectUnexpectedFields(errors, "Package equipment and quantities are defined by the server.");
+        rejectUnexpectedFields(errors, "Thiết bị và số lượng trong gói được máy chủ xác định.");
         validate(form, errors);
         if (errors.hasErrors()) return newForm(model);
         try {
             RentalOrder order = campingPackageDraftService.createDraftFromPackage(form.getCustomerId().trim(),
                     form.getRentalDate(), form.getExpectedReturnDate(), form.getPackageType());
-            redirect.addFlashAttribute("success", "Rental draft created successfully.");
+            redirect.addFlashAttribute("success", "Đã tạo đơn thuê nháp theo gói.");
             return "redirect:/rentals/" + order.getId();
         } catch (IllegalArgumentException exception) {
             errors.reject("invalidRentalDraft", exception.getMessage());
         } catch (SQLException exception) {
-            errors.reject("saveFailed", "Unable to create the rental draft. Please try again.");
+            errors.reject("saveFailed", "Không thể tạo đơn thuê nháp. Vui lòng thử lại.");
         }
         return newForm(model);
     }
@@ -129,10 +155,10 @@ public class RentalWebController {
     @PostMapping("/custom")
     public String createCustom(@ModelAttribute("customRentalDraftForm") CustomRentalDraftForm form, BindingResult errors,
             Model model, RedirectAttributes redirect, HttpServletResponse response) throws SQLException {
-        rejectUnexpectedFields(errors, "Only equipment IDs and quantities may be submitted for a custom rental.");
+        rejectUnexpectedFields(errors, "Chỉ được gửi mã thiết bị và số lượng khi thuê từng món.");
         if (hasSparseItems(form.getItems())) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
-            errors.reject("malformedItems", "Equipment item rows must use contiguous indices.");
+            errors.reject("malformedItems", "Các dòng thiết bị phải có chỉ số liên tiếp.");
             return customNewForm(model);
         }
         validateCustom(form, errors);
@@ -143,12 +169,12 @@ public class RentalWebController {
                     .toList();
             RentalOrder order = rentalService.createDraft(new RentalService.RentalRequest(form.getCustomerId().trim(),
                     form.getRentalDate(), form.getExpectedReturnDate(), items));
-            redirect.addFlashAttribute("success", "Custom rental draft created successfully.");
+            redirect.addFlashAttribute("success", "Đã tạo đơn thuê nháp theo từng món.");
             return "redirect:/rentals/" + order.getId();
         } catch (IllegalArgumentException exception) {
             errors.reject("invalidRentalDraft", exception.getMessage());
         } catch (SQLException exception) {
-            errors.reject("saveFailed", "Unable to create the rental draft. Please try again.");
+            errors.reject("saveFailed", "Không thể tạo đơn thuê nháp. Vui lòng thử lại.");
         }
         return customNewForm(model);
     }
@@ -156,28 +182,28 @@ public class RentalWebController {
     @ExceptionHandler(InvalidPropertyException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String rejectMalformedCustomBinding(Model model) {
-        model.addAttribute("message", "The request could not be completed.");
+        model.addAttribute("message", "Không thể xử lý yêu cầu này.");
         return "error";
     }
 
     @PostMapping("/{id}/confirm")
     public String confirm(@PathVariable("id") String id, RedirectAttributes redirect) {
-        return lifecycle(id, "Rental confirmed.", rentalService::confirmRental, redirect);
+        return lifecycle(id, "Đã xác nhận đơn thuê.", rentalService::confirmRental, redirect);
     }
 
     @PostMapping("/{id}/rent")
     public String rent(@PathVariable("id") String id, RedirectAttributes redirect) {
-        return lifecycle(id, "Rental marked as rented.", rentalService::rentRental, redirect);
+        return lifecycle(id, "Đơn thuê đã chuyển sang đang cho thuê.", rentalService::rentRental, redirect);
     }
 
     @PostMapping("/{id}/cancel")
     public String cancel(@PathVariable("id") String id, RedirectAttributes redirect) {
-        return lifecycle(id, "Rental cancelled.", rentalService::cancelRental, redirect);
+        return lifecycle(id, "Đã hủy đơn thuê.", rentalService::cancelRental, redirect);
     }
 
     @PostMapping("/{id}/return")
     public String returnRental(@PathVariable("id") String id, RedirectAttributes redirect) {
-        return lifecycle(id, "Rental returned.", rentalId -> rentalService.returnRental(rentalId, LocalDate.now()), redirect);
+        return lifecycle(id, "Đã ghi nhận trả thiết bị.", rentalId -> rentalService.returnRental(rentalId, LocalDate.now()), redirect);
     }
 
     private String lifecycle(String id, String successMessage, LifecycleAction action, RedirectAttributes redirect) {
@@ -185,47 +211,47 @@ public class RentalWebController {
             action.apply(id);
             redirect.addFlashAttribute("success", successMessage);
         } catch (IllegalArgumentException | IllegalStateException | SQLException exception) {
-            redirect.addFlashAttribute("error", "Rental lifecycle action could not be completed.");
+            redirect.addFlashAttribute("error", "Không thể thực hiện thao tác vòng đời đơn thuê.");
         }
         return "redirect:/rentals/" + id;
     }
 
     private void validate(RentalDraftForm form, BindingResult errors) {
-        if (form.getCustomerId() == null || form.getCustomerId().isBlank()) errors.rejectValue("customerId", "required", "Customer ID is required.");
+        if (form.getCustomerId() == null || form.getCustomerId().isBlank()) errors.rejectValue("customerId", "required", "Cần nhập mã khách hàng.");
         LocalDate rentalDate = form.getRentalDate();
         LocalDate expectedReturnDate = form.getExpectedReturnDate();
-        if (rentalDate == null) errors.rejectValue("rentalDate", "required", "Rental date is required.");
-        if (expectedReturnDate == null) errors.rejectValue("expectedReturnDate", "required", "Expected return date is required.");
-        else if (rentalDate != null && expectedReturnDate.isBefore(rentalDate)) errors.rejectValue("expectedReturnDate", "invalidDateRange", "Expected return date cannot be before rental date.");
-        if (form.getPackageType() == null) errors.rejectValue("packageType", "required", "Choose a camping package.");
+        if (rentalDate == null) errors.rejectValue("rentalDate", "required", "Cần chọn ngày thuê.");
+        if (expectedReturnDate == null) errors.rejectValue("expectedReturnDate", "required", "Cần chọn ngày dự kiến trả.");
+        else if (rentalDate != null && expectedReturnDate.isBefore(rentalDate)) errors.rejectValue("expectedReturnDate", "invalidDateRange", "Ngày dự kiến trả không được trước ngày thuê.");
+        if (form.getPackageType() == null) errors.rejectValue("packageType", "required", "Cần chọn gói cắm trại.");
     }
 
     private void validateCustom(CustomRentalDraftForm form, BindingResult errors) {
-        if (form.getCustomerId() == null || form.getCustomerId().isBlank()) errors.rejectValue("customerId", "required", "Customer ID is required.");
+        if (form.getCustomerId() == null || form.getCustomerId().isBlank()) errors.rejectValue("customerId", "required", "Cần nhập mã khách hàng.");
         LocalDate rentalDate = form.getRentalDate();
         LocalDate expectedReturnDate = form.getExpectedReturnDate();
-        if (rentalDate == null) errors.rejectValue("rentalDate", "required", "Rental date is required.");
-        if (expectedReturnDate == null) errors.rejectValue("expectedReturnDate", "required", "Expected return date is required.");
-        else if (rentalDate != null && expectedReturnDate.isBefore(rentalDate)) errors.rejectValue("expectedReturnDate", "invalidDateRange", "Expected return date cannot be before rental date.");
+        if (rentalDate == null) errors.rejectValue("rentalDate", "required", "Cần chọn ngày thuê.");
+        if (expectedReturnDate == null) errors.rejectValue("expectedReturnDate", "required", "Cần chọn ngày dự kiến trả.");
+        else if (rentalDate != null && expectedReturnDate.isBefore(rentalDate)) errors.rejectValue("expectedReturnDate", "invalidDateRange", "Ngày dự kiến trả không được trước ngày thuê.");
         List<CustomRentalItemForm> items = form.getItems();
         if (items == null || items.isEmpty()) {
-            errors.reject("itemsRequired", "Choose at least one equipment item.");
+            errors.reject("itemsRequired", "Cần chọn ít nhất một thiết bị.");
             return;
         }
         if (items.size() > MAX_CUSTOM_ITEMS) {
-            errors.reject("tooManyItems", "A custom rental can contain at most " + MAX_CUSTOM_ITEMS + " items.");
+            errors.reject("tooManyItems", "Đơn thuê từng món có tối đa " + MAX_CUSTOM_ITEMS + " thiết bị.");
             return;
         }
         for (int index = 0; index < items.size(); index++) {
             CustomRentalItemForm item = items.get(index);
             if (item == null) {
-                errors.reject("invalidItems", "Each equipment row must be complete.");
+                errors.reject("invalidItems", "Mỗi dòng thiết bị phải được nhập đầy đủ.");
                 continue;
             }
             String prefix = "items[" + index + "]";
-            if (item.getEquipmentId() == null || item.getEquipmentId().isBlank()) errors.rejectValue(prefix + ".equipmentId", "required", "Equipment is required.");
-            if (item.getQuantity() == null && errors.getFieldError(prefix + ".quantity") == null) errors.rejectValue(prefix + ".quantity", "required", "Quantity is required.");
-            else if (item.getQuantity() != null && item.getQuantity() <= 0) errors.rejectValue(prefix + ".quantity", "positive", "Quantity must be positive.");
+            if (item.getEquipmentId() == null || item.getEquipmentId().isBlank()) errors.rejectValue(prefix + ".equipmentId", "required", "Cần chọn thiết bị.");
+            if (item.getQuantity() == null && errors.getFieldError(prefix + ".quantity") == null) errors.rejectValue(prefix + ".quantity", "required", "Cần nhập số lượng.");
+            else if (item.getQuantity() != null && item.getQuantity() <= 0) errors.rejectValue(prefix + ".quantity", "positive", "Số lượng phải lớn hơn 0.");
         }
     }
 
@@ -248,6 +274,8 @@ public class RentalWebController {
     private static String stateName(RentalOrder order) {
         return RentalOrderStatus.fromState(order.getCurrentState()).name();
     }
+
+    public record PackageItemView(String equipmentId, String name, int quantity) { }
 
     @FunctionalInterface
     private interface LifecycleAction {
