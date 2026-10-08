@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.campinggearrental.factory.CampingPackageType;
+import com.campinggearrental.model.Equipment;
+import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
@@ -24,22 +26,29 @@ import com.campinggearrental.service.RentalOrderService;
 import com.campinggearrental.service.RentalService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @WebMvcTest(RentalWebController.class)
+@Import(RentalWebControllerTest.AuthenticatedRoutesConfiguration.class)
 class RentalWebControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockBean private CampingPackageDraftService campingPackageDraftService;
     @MockBean private RentalOrderService rentalOrderService;
     @MockBean private RentalService rentalService;
+    @MockBean private com.campinggearrental.service.EquipmentService equipmentService;
 
     @Test void listsPersistedRentals() throws Exception {
         RentalOrder order = order("RENT001");
@@ -95,6 +104,94 @@ class RentalWebControllerTest {
                 .andExpect(status().isOk()).andExpect(view().name("rentals/new"))
                 .andExpect(model().attributeHasFieldErrors("rentalDraftForm", "customerId", "packageType"));
         verifyNoInteractions(campingPackageDraftService);
+    }
+
+    @Test void opensAuthenticatedCustomDraftFormWithEquipmentOptions() throws Exception {
+        when(equipmentService.list()).thenReturn(List.of(equipment("EQ001")));
+        mockMvc.perform(get("/rentals/custom/new").session(authenticatedSession()))
+                .andExpect(status().isOk()).andExpect(view().name("rentals/custom-new"))
+                .andExpect(model().attributeExists("customRentalDraftForm", "equipmentOptions"));
+    }
+
+    @Test void customRoutesRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/rentals/custom/new")).andExpect(redirectedUrl("/login"));
+        mockMvc.perform(post("/rentals/custom")).andExpect(redirectedUrl("/login"));
+        verifyNoInteractions(equipmentService, rentalService);
+    }
+
+    @Test void createsValidMultiItemCustomDraftFromBrowserForm() throws Exception {
+        RentalOrder order = order("RENT-CUSTOM");
+        RentalService.RentalRequest request = new RentalService.RentalRequest("CUS001", LocalDate.of(2026, 10, 8),
+                LocalDate.of(2026, 10, 13), List.of(new RentalService.RentalRequestItem("EQ001", 1),
+                        new RentalService.RentalRequestItem("EQ002", 2)));
+        when(rentalService.createDraft(eq(request))).thenReturn(order);
+        mockMvc.perform(post("/rentals/custom").contentType(MediaType.APPLICATION_FORM_URLENCODED).session(authenticatedSession())
+                        .param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("items[0].equipmentId", "EQ001").param("items[0].quantity", "1")
+                        .param("items[1].equipmentId", "EQ002").param("items[1].quantity", "2"))
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/rentals/RENT-CUSTOM"));
+        verify(rentalService).createDraft(request);
+    }
+
+    @Test void createsCustomDraftWithMaximumTenRows() throws Exception {
+        List<RentalService.RentalRequestItem> items = new ArrayList<>();
+        for (int index = 0; index < 10; index++) items.add(new RentalService.RentalRequestItem("EQ" + index, index + 1));
+        RentalService.RentalRequest request = new RentalService.RentalRequest("CUS001", LocalDate.of(2026, 10, 8),
+                LocalDate.of(2026, 10, 13), items);
+        RentalOrder order = order("RENT-TEN");
+        when(rentalService.createDraft(eq(request))).thenReturn(order);
+        mockMvc.perform(customPostWithRows(10)).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/rentals/RENT-TEN"));
+        verify(rentalService).createDraft(request);
+    }
+
+    @Test void rejectsEmptyOrIncompleteCustomItemsWithoutDelegating() throws Exception {
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13"))
+                .andExpect(status().isOk()).andExpect(view().name("rentals/custom-new"));
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("items[0].equipmentId", " ").param("items[0].quantity", "1"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("customRentalDraftForm", "items[0].equipmentId"));
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void rejectsInvalidCustomQuantityAndDatesWithoutDelegating() throws Exception {
+        for (String quantity : List.of("0", "-1", "not-a-number")) {
+            mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                            .param("items[0].equipmentId", "EQ001").param("items[0].quantity", quantity))
+                    .andExpect(status().isOk()).andExpect(view().name("rentals/custom-new"));
+        }
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-13").param("expectedReturnDate", "2026-10-08")
+                        .param("items[0].equipmentId", "EQ001").param("items[0].quantity", "1"))
+                .andExpect(status().isOk()).andExpect(model().attributeHasFieldErrors("customRentalDraftForm", "expectedReturnDate"));
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void rejectsForgedCustomPricingStateAndPaymentFields() throws Exception {
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("items[0].equipmentId", "EQ001").param("items[0].quantity", "1")
+                        .param("items[0].unitPrice", "0.01").param("subtotal", "0.01").param("total", "0.01")
+                        .param("paymentStatus", "PAID").param("currentState", "RENTED"))
+                .andExpect(status().isOk()).andExpect(view().name("rentals/custom-new"))
+                .andExpect(result -> assertUnsupportedFields(result, "customRentalDraftForm"));
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void rejectsSparseCustomItemsWithoutDelegating() throws Exception {
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("items[1].equipmentId", "EQ001").param("items[1].quantity", "1"))
+                .andExpect(status().isBadRequest()).andExpect(view().name("rentals/custom-new"));
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void rejectsElevenCustomRowsWithoutDelegating() throws Exception {
+        mockMvc.perform(customPostWithRows(11)).andExpect(status().isBadRequest()).andExpect(view().name("error"));
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void rejectsOutOfRangeCustomItemIndexWithoutDelegating() throws Exception {
+        mockMvc.perform(customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("items[100].equipmentId", "EQ001").param("items[100].quantity", "1"))
+                .andExpect(status().isBadRequest()).andExpect(view().name("error"));
+        verifyNoInteractions(rentalService);
     }
 
     @Test void rejectsEquipmentOverrideForOtherwiseValidDraft() throws Exception {
@@ -172,5 +269,32 @@ class RentalWebControllerTest {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
         return session;
+    }
+
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder customPost() {
+        return post("/rentals/custom").contentType(MediaType.APPLICATION_FORM_URLENCODED).session(authenticatedSession());
+    }
+
+    private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder customPostWithRows(int count) {
+        var request = customPost().param("customerId", "CUS001").param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13");
+        for (int index = 0; index < count; index++) request.param("items[" + index + "].equipmentId", "EQ" + index).param("items[" + index + "].quantity", String.valueOf(index + 1));
+        return request;
+    }
+
+    private static void assertUnsupportedFields(org.springframework.test.web.servlet.MvcResult result, String formName) {
+        BindingResult errors = (BindingResult) result.getModelAndView().getModel().get(BindingResult.MODEL_KEY_PREFIX + formName);
+        assertTrue(errors.getGlobalErrors().stream().anyMatch(error -> "unsupportedFields".equals(error.getCode())));
+    }
+
+    private static Equipment equipment(String id) {
+        return new Equipment(id, "Tent", "CAT001", new BigDecimal("100.00"), 5, 5, EquipmentStatus.AVAILABLE);
+    }
+
+    @TestConfiguration
+    static class AuthenticatedRoutesConfiguration implements WebMvcConfigurer {
+        @Override public void addInterceptors(InterceptorRegistry registry) {
+            registry.addInterceptor(new AuthenticationInterceptor()).addPathPatterns("/**")
+                    .excludePathPatterns("/", "/login", "/error", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**");
+        }
     }
 }
