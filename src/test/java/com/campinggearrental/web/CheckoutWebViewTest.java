@@ -48,12 +48,13 @@ class CheckoutWebViewTest {
                 .GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
         assertTrue(response.body().contains("RENT001"), response.body());
-        assertTrue(response.body().contains("RENTED"), response.body());
+        assertTrue(response.body().contains("Đang cho thuê"), response.body());
+        assertTrue(response.body().contains("Chưa thanh toán"), response.body());
     }
 
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration
-    @Import({CheckoutWebController.class, WebErrorHandler.class})
+    @Import({CheckoutWebController.class, WebErrorHandler.class, PresentationLabels.class})
     static class TestConfiguration {
         @Bean PricingService pricingService() { return new PricingService(); }
         @Bean PersistedCheckoutService persistedCheckoutService(PricingService pricingService) {

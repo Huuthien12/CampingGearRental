@@ -1,15 +1,19 @@
-<nav class="navbar navbar-dark bg-success" th:fragment="navigation">
+<nav class="navbar navbar-expand-lg navbar-dark camping-nav" th:fragment="navigation">
     <div class="container">
         <a class="navbar-brand" th:href="@{/dashboard}">Camping Gear Rental</a>
-        <div class="d-flex flex-wrap align-items-center gap-3">
-            <a class="text-white text-decoration-none" th:href="@{/dashboard}">Dashboard</a>
-            <a class="text-white text-decoration-none" th:href="@{/customers}">Customers</a>
-            <a class="text-white text-decoration-none" th:href="@{/equipment}">Equipment</a>
-            <a class="text-white text-decoration-none" th:href="@{/rentals}">Rentals</a>
-            <a class="text-white text-decoration-none" th:href="@{/checkout}">Checkout</a>
-            <form method="post" th:action="@{/logout}">
-                <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
-            </form>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#main-navigation" aria-controls="main-navigation" aria-expanded="false" aria-label="Mở menu điều hướng"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="main-navigation">
+            <div class="navbar-nav ms-lg-auto align-items-lg-center gap-lg-1">
+                <a class="nav-link" th:href="@{/dashboard}">Tổng quan</a>
+                <a class="nav-link" th:href="@{/customers}">Khách hàng</a>
+                <a class="nav-link" th:href="@{/equipment}">Thiết bị</a>
+                <a class="nav-link" th:href="@{/rentals}">Đơn thuê</a>
+                <a class="nav-link" th:href="@{/checkout}">Thanh toán</a>
+                <form class="ms-lg-2 my-2 my-lg-0" method="post" th:action="@{/logout}">
+                    <button class="btn btn-outline-light btn-sm" type="submit">Đăng xuất</button>
+                </form>
+            </div>
         </div>
     </div>
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </nav>

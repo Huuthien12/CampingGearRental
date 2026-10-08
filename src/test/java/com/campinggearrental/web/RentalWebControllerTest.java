@@ -43,7 +43,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @WebMvcTest(RentalWebController.class)
-@Import(RentalWebControllerTest.AuthenticatedRoutesConfiguration.class)
+@Import({PresentationLabels.class, RentalWebControllerTest.AuthenticatedRoutesConfiguration.class})
 class RentalWebControllerTest {
     @Autowired private MockMvc mockMvc;
     @MockBean private CampingPackageDraftService campingPackageDraftService;
