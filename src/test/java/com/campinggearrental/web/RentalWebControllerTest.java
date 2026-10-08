@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.campinggearrental.factory.CampingPackageType;
+import com.campinggearrental.model.Category;
 import com.campinggearrental.model.Equipment;
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
@@ -49,6 +50,7 @@ class RentalWebControllerTest {
     @MockBean private RentalOrderService rentalOrderService;
     @MockBean private RentalService rentalService;
     @MockBean private com.campinggearrental.service.EquipmentService equipmentService;
+    @MockBean private com.campinggearrental.service.CategoryService categoryService;
 
     @Test void listsPersistedRentals() throws Exception {
         RentalOrder order = order("RENT001");
@@ -108,9 +110,20 @@ class RentalWebControllerTest {
 
     @Test void opensAuthenticatedCustomDraftFormWithEquipmentOptions() throws Exception {
         when(equipmentService.list()).thenReturn(List.of(equipment("EQ001")));
+        when(categoryService.list()).thenReturn(List.of(new Category("CAT001", "Lều cắm trại")));
         mockMvc.perform(get("/rentals/custom/new").session(authenticatedSession()))
                 .andExpect(status().isOk()).andExpect(view().name("rentals/custom-new"))
-                .andExpect(model().attributeExists("customRentalDraftForm", "equipmentOptions"));
+                .andExpect(model().attributeExists("customRentalDraftForm", "equipmentOptions", "categories"));
+    }
+
+    @Test void customRentalTemplateUsesDataDrivenSelectionAssetsAndResponsiveStyles() throws Exception {
+        String template = new String(getClass().getResourceAsStream("/templates/rentals/custom-new.html").readAllBytes());
+        String script = new String(getClass().getResourceAsStream("/static/js/custom-rental.js").readAllBytes());
+        String css = new String(getClass().getResourceAsStream("/static/css/custom-rental.css").readAllBytes());
+        assertTrue(template.contains("equipmentOptions") && template.contains("categories"));
+        assertTrue(template.contains("/css/custom-rental.css") && template.contains("/js/custom-rental.js"));
+        assertTrue(script.contains("items[${index}].equipmentId") && script.contains("selected.delete"));
+        assertTrue(css.contains("@media (max-width: 1199px)") && css.contains("@media (max-width: 767px)"));
     }
 
     @Test void customRoutesRequireAuthentication() throws Exception {

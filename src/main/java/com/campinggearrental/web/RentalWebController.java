@@ -5,6 +5,7 @@ import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
 import com.campinggearrental.service.CampingPackageDraftService;
+import com.campinggearrental.service.CategoryService;
 import com.campinggearrental.service.EquipmentService;
 import com.campinggearrental.service.RentalOrderService;
 import com.campinggearrental.service.RentalService;
@@ -39,14 +40,16 @@ public class RentalWebController {
     private final CampingPackageDraftService campingPackageDraftService;
     private final RentalService rentalService;
     private final EquipmentService equipmentService;
+    private final CategoryService categoryService;
 
     public RentalWebController(RentalOrderService rentalOrderService,
             CampingPackageDraftService campingPackageDraftService, RentalService rentalService,
-            EquipmentService equipmentService) {
+            EquipmentService equipmentService, CategoryService categoryService) {
         this.rentalOrderService = rentalOrderService;
         this.campingPackageDraftService = campingPackageDraftService;
         this.rentalService = rentalService;
         this.equipmentService = equipmentService;
+        this.categoryService = categoryService;
     }
 
     @GetMapping
@@ -119,6 +122,7 @@ public class RentalWebController {
             model.addAttribute("customRentalDraftForm", form);
         }
         model.addAttribute("equipmentOptions", equipmentService.list());
+        model.addAttribute("categories", categoryService.list());
         return "rentals/custom-new";
     }
 
