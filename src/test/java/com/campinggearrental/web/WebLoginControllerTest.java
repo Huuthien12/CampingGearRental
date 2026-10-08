@@ -37,6 +37,9 @@ class WebLoginControllerTest {
         mockMvc.perform(get("/login"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
+                .andExpect(content().string(containsString("login-mark")))
+                .andExpect(content().string(containsString("Tên đăng nhập")))
+                .andExpect(content().string(containsString("name=\"username\"")))
                 .andExpect(request().sessionAttributeDoesNotExist(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE));
     }
 
@@ -81,6 +84,8 @@ class WebLoginControllerTest {
                 .andExpect(content().string(containsString("Đơn thuê")))
                 .andExpect(content().string(containsString("Thanh toán")))
                 .andExpect(content().string(containsString("Đăng xuất")))
+                .andExpect(content().string(containsString("Truy cập nhanh")))
+                .andExpect(content().string(containsString("dashboard-link-card")))
                 .andExpect(content().string(containsString("action=\"/logout\"")))
                 .andExpect(content().string(containsString("bootstrap.bundle.min.js")))
                 .andExpect(content().string(containsString("href=\"/customers\"")))

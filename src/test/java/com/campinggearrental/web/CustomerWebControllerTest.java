@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +42,8 @@ class CustomerWebControllerTest {
         mockMvc.perform(get("/customers").session(authenticatedSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customers/list"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Danh sách và thông tin liên hệ")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("customer-search")))
                 .andExpect(model().attribute("customers", List.of(customer)));
     }
 
@@ -70,7 +73,17 @@ class CustomerWebControllerTest {
         mockMvc.perform(get("/customers/CUS001").session(authenticatedSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customers/detail"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("customer-details-card")))
                 .andExpect(model().attribute("customer", customer()));
+    }
+
+    @Test
+    void newCustomerFormRendersVietnameseFields() throws Exception {
+        mockMvc.perform(get("/customers/new").session(authenticatedSession()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("customers/form"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Họ tên")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("customer-form-card")));
     }
 
     @Test
