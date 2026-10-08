@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.mvc.method.annotation.ExtendedServletRequestDataBinder;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -59,6 +60,9 @@ public class RentalWebController {
     @InitBinder("rentalDraftForm")
     public void bindForm(WebDataBinder binder) {
         binder.setAllowedFields("customerId", "rentalDate", "expectedReturnDate", "packageType");
+        if (binder instanceof ExtendedServletRequestDataBinder extendedBinder) {
+            extendedBinder.setHeaderPredicate(header -> false);
+        }
     }
 
     @GetMapping("/new")

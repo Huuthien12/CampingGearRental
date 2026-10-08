@@ -30,7 +30,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.validation.BindingResult;
 
 @WebMvcTest(RentalWebController.class)
 class RentalWebControllerTest {
@@ -65,15 +67,15 @@ class RentalWebControllerTest {
                 .andExpect(model().attributeExists("rentalDraftForm", "packageTypes"));
     }
 
-    @Test void createsDraftFromServerDefinedPackage() throws Exception {
+    @Test void acceptsExactBrowserFormRequestForServerDefinedPackage() throws Exception {
         RentalOrder order = order("RENT001");
-        when(campingPackageDraftService.createDraftFromPackage(eq("CUS001"), eq(LocalDate.of(2026, 10, 5)),
-                eq(LocalDate.of(2026, 10, 7)), eq(CampingPackageType.COUPLE))).thenReturn(order);
-        mockMvc.perform(post("/rentals").param("customerId", " CUS001 ").param("rentalDate", "2026-10-05")
-                        .param("expectedReturnDate", "2026-10-07").param("packageType", "COUPLE").session(authenticatedSession()))
+        when(campingPackageDraftService.createDraftFromPackage(eq("CUS001"), eq(LocalDate.of(2026, 10, 8)),
+                eq(LocalDate.of(2026, 10, 13)), eq(CampingPackageType.SOLO))).thenReturn(order);
+        mockMvc.perform(post("/rentals").contentType(MediaType.APPLICATION_FORM_URLENCODED).param("customerId", "CUS001").param("rentalDate", "2026-10-08")
+                        .param("expectedReturnDate", "2026-10-13").param("packageType", "SOLO").session(authenticatedSession()))
                 .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/rentals/RENT001"));
-        verify(campingPackageDraftService).createDraftFromPackage("CUS001", LocalDate.of(2026, 10, 5),
-                LocalDate.of(2026, 10, 7), CampingPackageType.COUPLE);
+        verify(campingPackageDraftService).createDraftFromPackage("CUS001", LocalDate.of(2026, 10, 8),
+                LocalDate.of(2026, 10, 13), CampingPackageType.SOLO);
     }
 
     @Test void keepsSubmittedValuesForInvalidDates() throws Exception {
@@ -92,6 +94,19 @@ class RentalWebControllerTest {
                         .param("equipmentId", "EQ999").param("quantity", "999").session(authenticatedSession()))
                 .andExpect(status().isOk()).andExpect(view().name("rentals/new"))
                 .andExpect(model().attributeHasFieldErrors("rentalDraftForm", "customerId", "packageType"));
+        verifyNoInteractions(campingPackageDraftService);
+    }
+
+    @Test void rejectsEquipmentOverrideForOtherwiseValidDraft() throws Exception {
+        mockMvc.perform(post("/rentals").contentType(MediaType.APPLICATION_FORM_URLENCODED).param("customerId", "CUS001")
+                        .param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("packageType", "SOLO").param("equipmentId", "EQ999").session(authenticatedSession()))
+                .andExpect(status().isOk()).andExpect(view().name("rentals/new"))
+                .andExpect(result -> {
+                    BindingResult errors = (BindingResult) result.getModelAndView().getModel()
+                            .get(BindingResult.MODEL_KEY_PREFIX + "rentalDraftForm");
+                    assertTrue(errors.getGlobalErrors().stream().anyMatch(error -> "unsupportedFields".equals(error.getCode())));
+                });
         verifyNoInteractions(campingPackageDraftService);
     }
 
