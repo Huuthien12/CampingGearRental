@@ -24,17 +24,16 @@
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead>
-            <tr><th>Mã</th><th>Họ tên</th><th>Số điện thoại</th><th>Email</th><th></th></tr>
+            <tr><th>Họ tên</th><th>Số điện thoại</th><th>Email</th><th></th></tr>
             </thead>
             <tbody>
             <tr th:each="customer : ${customers}">
-                <td th:text="${customer.id}"></td>
-                <td><a class="link-success" th:href="@{/customers/{id}(id=${customer.id})}" th:text="${customer.fullName}"></a></td>
+                <td><a class="link-success fw-semibold" th:href="@{/customers/{id}(id=${customer.id})}" th:text="${customer.fullName}"></a><small class="d-block text-muted" th:text="${customer.id}"></small></td>
                 <td th:text="${customer.phone}"></td>
                 <td th:text="${customer.email}"></td>
                 <td><a class="btn btn-sm btn-outline-secondary" th:href="@{/customers/{id}(id=${customer.id})}">Chi tiết</a></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(customers)}"><td class="py-4 text-center text-secondary" colspan="5">Không có khách hàng phù hợp.</td></tr>
+            <tr th:if="${#lists.isEmpty(customers)}"><td class="py-4 text-center text-secondary" colspan="4">Không có khách hàng phù hợp.</td></tr>
             </tbody>
         </table>
     </div>

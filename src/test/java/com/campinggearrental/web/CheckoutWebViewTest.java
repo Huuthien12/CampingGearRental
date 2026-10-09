@@ -4,13 +4,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.campinggearrental.model.PaymentStatus;
+import com.campinggearrental.model.Equipment;
+import com.campinggearrental.model.EquipmentStatus;
+import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.repository.RentalOrderRepository;
+import com.campinggearrental.repository.EquipmentRepository;
+import com.campinggearrental.repository.CustomerRepository;
 import com.campinggearrental.service.CheckoutService;
 import com.campinggearrental.service.PersistedCheckoutService;
 import com.campinggearrental.service.PricingService;
 import com.campinggearrental.service.RentalPricingAdapter;
+import com.campinggearrental.service.RentalOrderService;
+import com.campinggearrental.service.EquipmentService;
+import com.campinggearrental.service.CustomerService;
 import com.campinggearrental.state.RentedState;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -50,6 +58,8 @@ class CheckoutWebViewTest {
         assertTrue(response.body().contains("RENT001"), response.body());
         assertTrue(response.body().contains("Đang cho thuê"), response.body());
         assertTrue(response.body().contains("Chưa thanh toán"), response.body());
+        assertTrue(response.body().contains("Lều Alpine"), response.body());
+        assertTrue(response.body().contains("100.000 ₫"), response.body());
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -59,6 +69,35 @@ class CheckoutWebViewTest {
         @Bean PricingService pricingService() { return new PricingService(); }
         @Bean PersistedCheckoutService persistedCheckoutService(PricingService pricingService) {
             return new FixedCheckout(pricingService);
+        }
+        @Bean RentalOrderService rentalOrderService() {
+            return new RentalOrderService(new RentalOrderRepository() {
+                public void insert(RentalOrder order) { }
+                public Optional<RentalOrder> findById(String id) { return Optional.empty(); }
+                public List<RentalOrder> findAll() { return List.of(); }
+                public void update(RentalOrder order) { }
+            });
+        }
+        @Bean EquipmentService equipmentService() {
+            return new EquipmentService(new EquipmentRepository() {
+                private final Equipment tent = new Equipment("EQ001", "Lều Alpine", "CAT001", new BigDecimal("100000.00"), 5, 5, EquipmentStatus.AVAILABLE);
+                public List<Equipment> findAll() { return List.of(tent); }
+                public Optional<Equipment> findById(String id) { return Optional.of(tent).filter(item -> item.getEquipmentId().equals(id)); }
+                public List<Equipment> search(String keyword) { return List.of(); }
+                public void insert(Equipment item) { }
+                public void update(Equipment item) { }
+            });
+        }
+        @Bean CustomerService customerService() {
+            return new CustomerService(new CustomerRepository() {
+                public List<Customer> findAll() { return List.of(new Customer("CUS001", "Nguyễn An", "0901234567", "", "")); }
+                public Optional<Customer> findById(String id) { return Optional.empty(); }
+                public List<Customer> search(String keyword) { return List.of(); }
+                public Optional<Customer> findByPhone(String phone) { return Optional.empty(); }
+                public void insert(Customer customer) { }
+                public void update(Customer customer) { }
+                public void deleteById(String id) { }
+            });
         }
     }
 

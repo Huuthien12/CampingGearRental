@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
 import com.campinggearrental.model.RentalOrderStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
 class PresentationLabelsTest {
@@ -23,5 +25,23 @@ class PresentationLabelsTest {
         assertEquals("PARTIAL", labels.paymentStatus("PARTIAL"));
         assertEquals("Repair", labels.category("Repair"));
         assertEquals("", labels.equipmentStatus((String) null));
+    }
+
+    @Test void formatsMoneyForVietnamesePresentationWithoutChangingValues() {
+        assertEquals("520.000 ₫", labels.money(new BigDecimal("520000.00")));
+        assertEquals("1.234,5 ₫", labels.money(new BigDecimal("1234.50")));
+        assertEquals("", labels.money(null));
+    }
+
+    @Test void shortensOnlyLongRentalIdsWhileKeepingTheirIdentityAvailableToTemplates() {
+        assertEquals("RENT001", labels.rentalId("RENT001"));
+        assertEquals("RENT2026…", labels.rentalId("RENT202612345678"));
+    }
+
+    @Test void formatsDatesAndFallsBackWithoutChangingStoredIdentifiers() {
+        assertEquals("09/10/2026", labels.date(LocalDate.of(2026, 10, 9)));
+        assertEquals("", labels.date(null));
+        assertEquals("Nguyễn An", labels.fallback("Nguyễn An", "CUS001"));
+        assertEquals("CUS001", labels.fallback("", "CUS001"));
     }
 }

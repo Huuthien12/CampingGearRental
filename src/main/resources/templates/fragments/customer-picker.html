@@ -1,0 +1,18 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <div th:fragment="picker(customers)" class="customer-picker" data-customer-picker>
+        <label for="customer-picker-search" class="form-label">Khách hàng <span aria-hidden="true">*</span></label>
+        <input id="customer-picker-search" class="form-control" type="search" placeholder="Tìm theo tên hoặc số điện thoại" autocomplete="off" aria-controls="customer-picker-options">
+        <input type="hidden" th:field="*{customerId}" data-customer-id>
+        <p class="customer-picker-selection" data-customer-selection aria-live="polite">Chưa chọn khách hàng.</p>
+        <div id="customer-picker-options" class="customer-picker-options" role="listbox" th:if="${!#lists.isEmpty(customers)}">
+            <button type="button" role="option" class="customer-picker-option" th:each="customer : ${customers}"
+                    th:data-customer-id="${customer.id}" th:data-customer-search="${customer.fullName + ' ' + customer.phone}">
+                <strong th:text="${customer.fullName}">Tên khách hàng</strong>
+                <span th:text="${customer.phone}">Số điện thoại</span>
+            </button>
+        </div>
+        <p class="customer-picker-empty" th:if="${#lists.isEmpty(customers)}">Chưa có khách hàng để chọn.</p>
+        <a class="customer-picker-add" th:href="@{/customers/new}">+ Thêm khách hàng mới</a>
+        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('customerId')}" th:errors="*{customerId}"></div>
+    </div>
+</th:block>

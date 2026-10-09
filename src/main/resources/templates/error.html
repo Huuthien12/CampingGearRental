@@ -1,1 +1,4 @@
-<!doctype html><html><head><title>Request error</title></head><body><main><h1>Unable to complete request</h1><p th:text="${message}">The request could not be completed.</p></main></body></html>
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Có lỗi xảy ra')}"></th:block></head>
+<body><main class="safe-page container py-5"><section class="safe-page-card text-center mx-auto"><div class="safe-page-icon" aria-hidden="true">⛺</div><h1 class="h3">Không thể hoàn tất yêu cầu</h1><p class="text-muted" th:text="${message}">Không thể hoàn tất yêu cầu.</p><a class="btn btn-success" th:href="@{/}">Về trang đăng nhập</a></section></main></body></html>

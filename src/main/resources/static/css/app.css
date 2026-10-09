@@ -57,7 +57,13 @@ body { min-height: 100vh; background: var(--camp-cream); color: var(--camp-deep-
 .section-eyebrow { color: var(--camp-forest); font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
 .package-preview { padding: 1rem; border: 1px solid var(--camp-border); border-radius: .75rem; background: #f4f8e9; }
 .rental-summary dt { color: var(--camp-forest); }
+.checkout-lookup-card, .checkout-panel, .checkout-summary-panel, .safe-page-card { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--camp-border); border-radius: 1rem; background: #fff; box-shadow: var(--camp-shadow); }
+.checkout-summary-panel { position: sticky; top: 1rem; }.checkout-summary-panel dl > div { display: flex; justify-content: space-between; gap: 1rem; padding: .65rem 0; border-bottom: 1px solid var(--camp-border); }.checkout-summary-panel dt, .checkout-summary-panel dd { margin: 0; }.checkout-total { color: var(--camp-forest); font-size: 1.15rem; font-weight: 800; }
+.safe-page { display: grid; min-height: 100vh; place-items: center; }.safe-page-card { max-width: 34rem; }.safe-page-icon { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; margin: 0 auto 1rem; border-radius: 50%; background: #edf5d6; font-size: 1.65rem; }
+.customer-picker { display: grid; gap: .5rem; }.customer-picker-selection { min-height: 1.5rem; margin: 0; color: var(--camp-forest); font-size: .9rem; font-weight: 700; }.customer-picker-options { display: grid; max-height: 13rem; overflow-y: auto; border: 1px solid var(--camp-border); border-radius: .75rem; background: #fff; }.customer-picker-option { display: grid; gap: .1rem; width: 100%; padding: .65rem .8rem; border: 0; border-bottom: 1px solid var(--camp-border); background: transparent; color: var(--camp-deep-forest); text-align: left; }.customer-picker-option:last-child { border-bottom: 0; }.customer-picker-option:hover, .customer-picker-option:focus, .customer-picker-option[aria-selected="true"] { outline: 0; background: #edf5d6; }.customer-picker-option span, .customer-picker-empty { color: #5d6f62; font-size: .85rem; }.customer-picker-empty { margin: 0; }.customer-picker-add { color: var(--camp-forest); font-size: .9rem; font-weight: 700; }
+.checkout-payable { padding: .75rem; border-radius: .75rem; background: #edf5d6; color: var(--camp-deep-forest); }
 
 @media (max-width: 480px) {
 	.camping-page-header, .management-filter { padding: 1rem; }
+	.checkout-summary-panel { position: static; }
 }

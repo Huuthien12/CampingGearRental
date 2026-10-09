@@ -157,7 +157,7 @@ class EquipmentWebTest {
     }
 
     @Test void missingEquipmentUsesExistingSafeErrorPage() throws Exception {
-        assertTrue(get("/equipment/missing/edit").body().contains("The request could not be completed."));
+        assertTrue(get("/equipment/missing/edit").body().contains("Không thể hoàn tất yêu cầu."));
     }
 
     @Test void inactiveEditRequiresStatusAndPreservesDataOnMissingOrEmptyStatus() throws Exception {

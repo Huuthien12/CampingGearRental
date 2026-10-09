@@ -19,12 +19,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.factory.CampingPackageFactory;
 import com.campinggearrental.model.Category;
+import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.Equipment;
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.service.CampingPackageDraftService;
+import com.campinggearrental.service.CustomerService;
 import com.campinggearrental.service.RentalOrderService;
 import com.campinggearrental.service.RentalService;
 import java.math.BigDecimal;
@@ -54,6 +56,7 @@ class RentalWebControllerTest {
     @MockBean private RentalService rentalService;
     @MockBean private com.campinggearrental.service.EquipmentService equipmentService;
     @MockBean private com.campinggearrental.service.CategoryService categoryService;
+    @MockBean private CustomerService customerService;
 
     @Test void listsPersistedRentals() throws Exception {
         RentalOrder order = order("RENT001");
@@ -61,6 +64,21 @@ class RentalWebControllerTest {
         mockMvc.perform(get("/rentals").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("rentals/list"))
                 .andExpect(model().attribute("rentals", List.of(order)));
         verify(rentalOrderService).findAll();
+    }
+
+    @Test void rentalViewsExposeHumanReadableCustomerAndEquipmentMaps() throws Exception {
+        RentalOrder order = order("RENT202612345678");
+        Customer customer = new Customer("CUS001", "Nguyễn An", "0901234567", "", "");
+        Equipment item = new Equipment("EQ001", "Lều Alpine", "CAT001", new BigDecimal("100.00"), 5);
+        when(rentalOrderService.findAll()).thenReturn(List.of(order));
+        when(rentalOrderService.findById(order.getId())).thenReturn(order);
+        when(customerService.findAll()).thenReturn(List.of(customer));
+        when(equipmentService.list()).thenReturn(List.of(item));
+        mockMvc.perform(get("/rentals").session(authenticatedSession())).andExpect(status().isOk())
+                .andExpect(model().attribute("customerNames", Map.of("CUS001", "Nguyễn An")));
+        mockMvc.perform(get("/rentals/{id}", order.getId()).session(authenticatedSession())).andExpect(status().isOk())
+                .andExpect(model().attribute("customerNames", Map.of("CUS001", "Nguyễn An")))
+                .andExpect(model().attribute("equipmentNames", Map.of("EQ001", "Lều Alpine")));
     }
 
     @Test void displaysPersistedDetailWithHistoricalPrice() throws Exception {
@@ -100,6 +118,18 @@ class RentalWebControllerTest {
                     assertEquals(missing.equipmentId(), missing.name());
                 });
         verify(equipmentService).list();
+    }
+
+    @Test void rendersRealCustomersInBothRentalPickers() throws Exception {
+        Customer customer = new Customer("CUS001", "Nguyễn An", "0901234567", "", "");
+        when(customerService.findAll()).thenReturn(List.of(customer));
+        when(equipmentService.list()).thenReturn(List.of(equipment("EQ001")));
+        when(categoryService.list()).thenReturn(List.of());
+        mockMvc.perform(get("/rentals/new").session(authenticatedSession())).andExpect(status().isOk())
+                .andExpect(model().attribute("customerOptions", List.of(customer)));
+        mockMvc.perform(get("/rentals/custom/new").session(authenticatedSession())).andExpect(status().isOk())
+                .andExpect(model().attribute("customerOptions", List.of(customer)));
+        verify(customerService, org.mockito.Mockito.times(2)).findAll();
     }
 
     @Test void acceptsExactBrowserFormRequestForServerDefinedPackage() throws Exception {
@@ -143,11 +173,14 @@ class RentalWebControllerTest {
     @Test void customRentalTemplateUsesDataDrivenSelectionAssetsAndResponsiveStyles() throws Exception {
         String template = new String(getClass().getResourceAsStream("/templates/rentals/custom-new.html").readAllBytes());
         String script = new String(getClass().getResourceAsStream("/static/js/custom-rental.js").readAllBytes());
+        String customerPicker = new String(getClass().getResourceAsStream("/static/js/customer-picker.js").readAllBytes());
         String css = new String(getClass().getResourceAsStream("/static/css/custom-rental.css").readAllBytes());
         assertTrue(template.contains("equipmentOptions") && template.contains("categories"));
         assertTrue(template.contains("/css/custom-rental.css") && template.contains("/js/custom-rental.js"));
         assertTrue(script.contains("items[${index}].equipmentId") && script.contains("selected.delete"));
         assertTrue(css.contains("@media (max-width: 1199px)") && css.contains("@media (max-width: 767px)"));
+        assertTrue(template.contains("fragments/customer-picker") && template.contains("/js/customer-picker.js"));
+        assertTrue(customerPicker.contains("customerId") && customerPicker.contains("toLocaleLowerCase"));
     }
 
     @Test void customRoutesRequireAuthentication() throws Exception {
@@ -300,12 +333,13 @@ class RentalWebControllerTest {
         String list = new String(getClass().getResourceAsStream("/templates/rentals/list.html").readAllBytes());
         String detail = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
         String draft = new String(getClass().getResourceAsStream("/templates/rentals/new.html").readAllBytes());
-        assertTrue(list.contains("Đơn thuê") && list.contains("fragments/status-badges"));
-        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("fragments/status-badges"));
+        assertTrue(list.contains("Đơn thuê") && list.contains("customerNames[rental.customerId]") && list.contains("/rentals/custom/new"));
+        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("equipmentNames[detail.equipmentId]") && detail.contains("@presentationLabels.date"));
         assertTrue(draft.contains("packageItems.get(type)") && draft.contains("@presentationLabels.packageType(type)"));
         assertTrue(draft.contains("item.name + ' × ' + item.quantity") && draft.contains("item.equipmentId"));
         assertTrue(draft.contains("type=\"radio\"") && draft.contains("th:field=\"*{packageType}\""));
         assertTrue(draft.contains("/css/package-rental.css"));
+        assertTrue(draft.contains("fragments/customer-picker") && draft.contains("/js/customer-picker.js"));
     }
 
     private static RentalOrder order(String id) {

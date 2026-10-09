@@ -5,10 +5,12 @@ import com.campinggearrental.factory.CampingPackageFactory;
 import com.campinggearrental.factory.CampingPackageItem;
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.model.Equipment;
+import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
 import com.campinggearrental.service.CampingPackageDraftService;
 import com.campinggearrental.service.CategoryService;
+import com.campinggearrental.service.CustomerService;
 import com.campinggearrental.service.EquipmentService;
 import com.campinggearrental.service.RentalOrderService;
 import com.campinggearrental.service.RentalService;
@@ -44,15 +46,17 @@ public class RentalWebController {
     private final RentalService rentalService;
     private final EquipmentService equipmentService;
     private final CategoryService categoryService;
+    private final CustomerService customerService;
 
     public RentalWebController(RentalOrderService rentalOrderService,
             CampingPackageDraftService campingPackageDraftService, RentalService rentalService,
-            EquipmentService equipmentService, CategoryService categoryService) {
+            EquipmentService equipmentService, CategoryService categoryService, CustomerService customerService) {
         this.rentalOrderService = rentalOrderService;
         this.campingPackageDraftService = campingPackageDraftService;
         this.rentalService = rentalService;
         this.equipmentService = equipmentService;
         this.categoryService = categoryService;
+        this.customerService = customerService;
     }
 
     @GetMapping
@@ -62,6 +66,7 @@ public class RentalWebController {
         rentals.forEach(rental -> states.put(rental.getId(), stateName(rental)));
         model.addAttribute("rentals", rentals);
         model.addAttribute("rentalStates", states);
+        model.addAttribute("customerNames", customerNames());
         return "rentals/list";
     }
 
@@ -71,6 +76,8 @@ public class RentalWebController {
         if (order == null) return "error/404";
         model.addAttribute("order", order);
         model.addAttribute("stateName", stateName(order));
+        model.addAttribute("customerNames", customerNames());
+        model.addAttribute("equipmentNames", equipmentNames());
         return "rentals/detail";
     }
 
@@ -95,6 +102,7 @@ public class RentalWebController {
     public String newForm(Model model) {
         if (!model.containsAttribute("rentalDraftForm")) model.addAttribute("rentalDraftForm", new RentalDraftForm());
         model.addAttribute("packageTypes", CampingPackageType.values());
+        model.addAttribute("customerOptions", customerOptions());
         Map<String, String> equipmentNames = packageEquipmentNames();
         Map<CampingPackageType, List<PackageItemView>> packageItems = new LinkedHashMap<>();
         for (CampingPackageType type : CampingPackageType.values()) {
@@ -149,7 +157,28 @@ public class RentalWebController {
         }
         model.addAttribute("equipmentOptions", equipmentService.list());
         model.addAttribute("categories", categoryService.list());
+        model.addAttribute("customerOptions", customerOptions());
         return "rentals/custom-new";
+    }
+
+    private List<Customer> customerOptions() {
+        try {
+            return customerService.findAll();
+        } catch (SQLException ignored) {
+            return List.of();
+        }
+    }
+
+    private Map<String, String> customerNames() throws SQLException {
+        Map<String, String> names = new LinkedHashMap<>();
+        for (Customer customer : customerService.findAll()) names.put(customer.id(), customer.fullName());
+        return names;
+    }
+
+    private Map<String, String> equipmentNames() throws SQLException {
+        Map<String, String> names = new LinkedHashMap<>();
+        for (Equipment item : equipmentService.list()) names.put(item.getEquipmentId(), item.getName());
+        return names;
     }
 
     @PostMapping("/custom")
