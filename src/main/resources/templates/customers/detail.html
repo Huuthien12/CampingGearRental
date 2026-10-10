@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Chi tiết khách hàng')}"></th:block></head>
+<body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
+<main class="container py-4">
+    <th:block th:replace="~{fragments/alerts :: alerts(${success}, ${null})}"></th:block>
+    <div class="customer-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <a class="link-success" th:href="@{/customers}">← Danh sách khách hàng</a>
+            <h1 class="h2 mt-3 mb-1" th:text="${customer.fullName}">Khách hàng</h1>
+            <p class="text-secondary mb-0" th:text="${customer.id}"></p>
+        </div>
+        <a class="btn btn-outline-success" th:href="@{/customers/{id}/edit(id=${customer.id})}">Sửa thông tin</a>
+    </div>
+    <dl class="customer-details customer-details-card row">
+        <dt class="col-sm-3">Số điện thoại</dt><dd class="col-sm-9" th:text="${customer.phone}"></dd>
+        <dt class="col-sm-3">Email</dt><dd class="col-sm-9" th:text="${customer.email != '' ? customer.email : 'Chưa cung cấp'}"></dd>
+        <dt class="col-sm-3">Địa chỉ</dt><dd class="col-sm-9" th:text="${customer.address != '' ? customer.address : 'Chưa cung cấp'}"></dd>
+    </dl>
+</main>
+</body>
+</html>

@@ -157,7 +157,7 @@ public class RentalService {
     }
 
     private RentalOrder requireOrder(Connection connection, String id) throws SQLException {
-        return rentalOrderRepository.findById(connection, requiredId(id, "rental order id"))
+        return rentalOrderRepository.findByIdForUpdate(connection, requiredId(id, "rental order id"))
                 .orElseThrow(() -> new IllegalArgumentException("rental order not found: " + id));
     }
 
@@ -173,12 +173,18 @@ public class RentalService {
     }
 
     private List<Equipment> loadEquipment(Connection connection, RentalOrder order) throws SQLException {
-        List<Equipment> equipment = new ArrayList<>();
         for (RentalDetail detail : order.getDetails()) {
             if (detail.getQuantity() <= 0) throw new IllegalArgumentException("rental detail quantity must be positive");
-            equipment.add(equipmentRepository.findById(connection, detail.getEquipmentId())
-                    .orElseThrow(() -> new IllegalArgumentException("equipment not found: " + detail.getEquipmentId())));
         }
+        // Acquire distinct row locks in one order across transactions, without reordering detail/quantity pairs.
+        LinkedHashMap<String, Equipment> locked = new LinkedHashMap<>();
+        List<String> ids = order.getDetails().stream().map(RentalDetail::getEquipmentId).distinct().sorted().toList();
+        for (String id : ids) {
+            locked.put(id, equipmentRepository.findByIdForUpdate(connection, id)
+                    .orElseThrow(() -> new IllegalArgumentException("equipment not found: " + id)));
+        }
+        List<Equipment> equipment = new ArrayList<>();
+        for (RentalDetail detail : order.getDetails()) equipment.add(locked.get(detail.getEquipmentId()));
         return equipment;
     }
 

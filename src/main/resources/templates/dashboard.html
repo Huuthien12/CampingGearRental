@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Tổng quan')}"></th:block></head>
+<body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
+<main class="container py-4 py-md-5">
+    <section class="dashboard-hero mb-4">
+        <p class="eyebrow mb-2">CAMPING GEAR RENTAL</p>
+        <h1 class="h2">Tổng quan</h1>
+        <p class="mb-0">Chào <strong th:text="${username}">nhân viên</strong>, chọn khu vực cần quản lý cho chuyến đi tiếp theo.</p>
+    </section>
+    <section aria-labelledby="quick-access-title">
+        <h2 id="quick-access-title" class="h4 mb-3">Truy cập nhanh</h2>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+            <div class="col"><a class="dashboard-link-card text-decoration-none" th:href="@{/customers}"><span class="dashboard-link-icon" aria-hidden="true">👥</span><span><strong>Khách hàng</strong><small class="d-block text-secondary mt-1">Quản lý thông tin liên hệ</small></span></a></div>
+            <div class="col"><a class="dashboard-link-card text-decoration-none" th:href="@{/equipment}"><span class="dashboard-link-icon" aria-hidden="true">🧰</span><span><strong>Thiết bị</strong><small class="d-block text-secondary mt-1">Theo dõi danh mục thiết bị</small></span></a></div>
+            <div class="col"><a class="dashboard-link-card text-decoration-none" th:href="@{/rentals}"><span class="dashboard-link-icon" aria-hidden="true">⛺</span><span><strong>Đơn thuê</strong><small class="d-block text-secondary mt-1">Tạo và theo dõi đơn thuê</small></span></a></div>
+            <div class="col"><a class="dashboard-link-card text-decoration-none" th:href="@{/checkout}"><span class="dashboard-link-icon" aria-hidden="true">🧾</span><span><strong>Thanh toán</strong><small class="d-block text-secondary mt-1">Kiểm tra giá và thanh toán</small></span></a></div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

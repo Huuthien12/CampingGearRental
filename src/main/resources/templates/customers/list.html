@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Khách hàng')}"></th:block></head>
+<body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
+<main class="container py-4">
+    <div class="customer-page-header d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h2 mb-1">Khách hàng</h1>
+            <p class="text-secondary mb-0">Danh sách và thông tin liên hệ</p>
+        </div>
+        <a class="btn btn-success" th:href="@{/customers/new}">Thêm khách hàng</a>
+    </div>
+    <th:block th:replace="~{fragments/alerts :: alerts(${success}, ${error})}"></th:block>
+    <form class="customer-search row g-2 mb-3" method="get" th:action="@{/customers}">
+        <div class="col-sm-9 col-md-10">
+            <label class="visually-hidden" for="customer-query">Tìm theo tên hoặc số điện thoại</label>
+            <input class="form-control" id="customer-query" name="q" placeholder="Tìm theo tên hoặc số điện thoại" th:value="${keyword}">
+        </div>
+        <div class="col-sm-3 col-md-2 d-grid">
+            <button class="btn btn-outline-success" type="submit">Tìm</button>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+            <tr><th>Họ tên</th><th>Số điện thoại</th><th>Email</th><th></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="customer : ${customers}">
+                <td><a class="link-success fw-semibold" th:href="@{/customers/{id}(id=${customer.id})}" th:text="${customer.fullName}"></a><small class="d-block text-muted" th:text="${customer.id}"></small></td>
+                <td th:text="${customer.phone}"></td>
+                <td th:text="${customer.email}"></td>
+                <td><a class="btn btn-sm btn-outline-secondary" th:href="@{/customers/{id}(id=${customer.id})}">Chi tiết</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(customers)}"><td class="py-4 text-center text-secondary" colspan="4">Không có khách hàng phù hợp.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

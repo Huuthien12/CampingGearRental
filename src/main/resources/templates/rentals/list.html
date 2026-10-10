@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Đơn thuê')}"></th:block></head>
+<body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
+<main class="container py-4 py-md-5">
+    <section class="camping-page-header mb-4"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3"><div><p class="section-eyebrow mb-1">QUẢN LÝ CẮM TRẠI</p><h1 class="h2 mb-1">Đơn thuê</h1><p class="text-muted mb-0">Tạo và theo dõi các đơn thuê thiết bị cắm trại.</p></div><div class="d-flex flex-wrap gap-2"><a class="btn btn-success" th:href="@{/rentals/new}">Thuê theo gói</a><a class="btn btn-outline-success" th:href="@{/rentals/custom/new}">Thuê từng món</a></div></div></section>
+    <th:block th:replace="~{fragments/alerts :: alerts(${success}, ${error})}"></th:block>
+    <section class="card border-0">
+        <div class="table-responsive" th:if="${not #lists.isEmpty(rentals)}"><table class="table table-hover align-middle mb-0"><thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày thuê</th><th>Dự kiến trả</th><th>Trạng thái</th><th>Thanh toán</th><th class="text-end">Thao tác</th></tr></thead><tbody><tr th:each="rental : ${rentals}"><td><span class="fw-semibold" th:text="${@presentationLabels.rentalId(rental.id)}"></span><small class="d-block text-muted" th:text="${rental.id}"></small></td><td><span class="fw-semibold" th:text="${@presentationLabels.fallback(customerNames[rental.customerId], rental.customerId)}"></span><small class="d-block text-muted" th:text="${rental.customerId}"></small></td><td th:text="${@presentationLabels.date(rental.rentalDate)}"></td><td th:text="${@presentationLabels.date(rental.expectedReturnDate)}"></td><td><span th:replace="~{fragments/status-badges :: rental(${rentalStates[rental.id]})}"></span></td><td><span th:replace="~{fragments/status-badges :: payment(${rental.paymentStatus})}"></span></td><td class="text-end"><a class="btn btn-sm btn-outline-success" th:href="@{/rentals/{id}(id=${rental.id})}" th:aria-label="${'Xem chi tiết đơn ' + rental.id}">Xem chi tiết</a></td></tr></tbody></table></div>
+        <div class="empty-state text-center py-5 px-3 m-3" th:if="${#lists.isEmpty(rentals)}"><h2 class="h5 text-success">Chưa có đơn thuê</h2><p class="text-muted mb-3">Hãy bắt đầu bằng cách chọn hình thức thuê phù hợp.</p><div class="d-flex justify-content-center flex-wrap gap-2"><a class="btn btn-success" th:href="@{/rentals/new}">Thuê theo gói</a><a class="btn btn-outline-success" th:href="@{/rentals/custom/new}">Thuê từng món</a></div></div>
+    </section>
+</main>
+</body></html>

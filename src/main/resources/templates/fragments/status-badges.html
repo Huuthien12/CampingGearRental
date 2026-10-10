@@ -1,0 +1,5 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <span th:fragment="rental(state)" class="badge status-badge" th:classappend="${state == 'RETURNED' ? ' status-complete' : (state == 'CANCELLED' ? ' status-muted' : ' status-pending')}" th:text="${@presentationLabels.rentalState(state)}">Trạng thái đơn thuê</span>
+    <span th:fragment="payment(status)" class="badge status-badge" th:classappend="${status.name() == 'PAID' ? ' status-complete' : ' status-muted'}" th:text="${@presentationLabels.paymentStatus(status)}">Trạng thái thanh toán</span>
+    <span th:fragment="equipment(status)" class="badge status-badge" th:classappend="${status.name() == 'AVAILABLE' ? ' status-complete' : ' status-muted'}" th:text="${@presentationLabels.equipmentStatus(status)}">Trạng thái thiết bị</span>
+</th:block>

@@ -5,6 +5,7 @@ import com.campinggearrental.repository.CustomerRepository;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class CustomerService {
@@ -16,6 +17,13 @@ public class CustomerService {
 
     public List<Customer> findAll() throws SQLException {
         return customerRepository.findAll();
+    }
+
+    public Optional<Customer> findById(String id) throws SQLException {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return customerRepository.findById(id.trim());
     }
 
     public List<Customer> search(String keyword) throws SQLException {

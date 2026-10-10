@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head(${formTitle})}"></th:block></head>
+<body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav>
+<main class="container py-4">
+    <div class="mb-4">
+        <a class="link-success" th:href="@{/customers}">← Danh sách khách hàng</a>
+        <h1 class="h2 mt-3" th:text="${formTitle}">Khách hàng</h1>
+    </div>
+    <th:block th:replace="~{fragments/alerts :: alerts(${null}, ${error})}"></th:block>
+    <section class="customer-form-card"><form class="customer-form" method="post" th:action="${formAction}">
+        <div class="mb-3">
+            <label class="form-label" for="fullName">Họ tên <span class="text-danger">*</span></label>
+            <input class="form-control" id="fullName" name="fullName" maxlength="100" required th:value="${customer.fullName}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="phone">Số điện thoại <span class="text-danger">*</span></label>
+            <input class="form-control" id="phone" name="phone" maxlength="20" required th:value="${customer.phone}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" name="email" type="email" maxlength="255" th:value="${customer.email}">
+        </div>
+        <div class="mb-4">
+            <label class="form-label" for="address">Địa chỉ</label>
+            <input class="form-control" id="address" name="address" maxlength="255" th:value="${customer.address}">
+        </div>
+        <button class="btn btn-success" type="submit">Lưu khách hàng</button>
+        <a class="btn btn-outline-secondary ms-2" th:href="@{/customers}">Hủy</a>
+    </form></section>
+</main>
+</body>
+</html>
