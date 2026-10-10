@@ -2,6 +2,7 @@ package com.campinggearrental.web;
 
 import jakarta.servlet.http.HttpServletResponse;
 import com.campinggearrental.factory.CampingPackageFactory;
+import com.campinggearrental.factory.CampingPackageCreator;
 import com.campinggearrental.factory.CampingPackageItem;
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.model.Equipment;
@@ -107,7 +108,8 @@ public class RentalWebController {
         Map<String, Equipment> packageEquipment = packageEquipment();
         Map<CampingPackageType, List<PackageItemView>> packageItems = new LinkedHashMap<>();
         for (CampingPackageType type : CampingPackageType.values()) {
-            List<PackageItemView> items = CampingPackageFactory.create(type).items().stream()
+            CampingPackageCreator creator = CampingPackageFactory.creatorFor(type);
+            List<PackageItemView> items = creator.createPackage().items().stream()
                     .map(item -> packageItemView(item, packageEquipment)).toList();
             packageItems.put(type, items);
         }

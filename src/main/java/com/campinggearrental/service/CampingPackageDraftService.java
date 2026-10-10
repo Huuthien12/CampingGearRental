@@ -1,6 +1,7 @@
 package com.campinggearrental.service;
 
 import com.campinggearrental.factory.CampingPackageFactory;
+import com.campinggearrental.factory.CampingPackageCreator;
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.model.RentalOrder;
 import java.sql.SQLException;
@@ -17,7 +18,8 @@ public class CampingPackageDraftService {
 
     public RentalOrder createDraftFromPackage(String customerId, LocalDate rentalDate,
             LocalDate expectedReturnDate, CampingPackageType packageType) throws SQLException {
-        var campingPackage = CampingPackageFactory.create(packageType);
+        CampingPackageCreator creator = CampingPackageFactory.creatorFor(packageType);
+        var campingPackage = creator.createPackage();
         var items = campingPackage.items().stream()
                 .map(item -> new RentalService.RentalRequestItem(item.equipmentId(), item.quantity()))
                 .toList();

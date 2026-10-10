@@ -19,7 +19,7 @@ class RentalWorkflowIntegrationTest {
         RentalOrder order = new CampingPackageDraftService(f.rental).createDraftFromPackage("C1",
                 LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 6), CampingPackageType.SOLO);
         assertInstanceOf(PendingState.class, order.getCurrentState()); assertEquals(PaymentStatus.UNPAID, order.getPaymentStatus());
-        assertEquals(CampingPackageFactory.create(CampingPackageType.SOLO).items().stream()
+        assertEquals(CampingPackageFactory.creatorFor(CampingPackageType.SOLO).createPackage().items().stream()
                 .map(item -> Map.entry(item.equipmentId(), item.quantity())).toList(), order.getDetails().stream()
                 .map(detail -> Map.entry(detail.getEquipmentId(), detail.getQuantity())).toList());
         assertEquals(List.of(new BigDecimal("100"), new BigDecimal("30"), new BigDecimal("70")),
