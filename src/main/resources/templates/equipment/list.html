@@ -28,7 +28,7 @@
                     <td><span th:text="${@presentationLabels.category(categoryNames[item.categoryId] ?: item.categoryId)}"></span><small class="d-block text-muted" th:text="${item.categoryId}"></small></td>
                     <td th:text="${#numbers.formatDecimal(item.pricePerDay, 1, 'COMMA', 2, 'POINT') + ' VND'}"></td>
                     <td><span th:text="${item.availableQuantity + ' / ' + item.totalQuantity}"></span><span class="badge text-bg-warning ms-1" th:if="${item.availableQuantity == 0}">Hết hàng</span></td>
-                    <td><span th:replace="~{fragments/status-badges :: equipment(${item.status})}"></span></td>
+                    <td th:attr="data-testid=${'equipment-status-' + item.equipmentId}"><span class="badge text-bg-warning" th:if="${item.status.name() == 'AVAILABLE' and item.availableQuantity == 0}">Hết hàng</span><span th:if="${item.status.name() != 'AVAILABLE' or item.availableQuantity > 0}" th:replace="~{fragments/status-badges :: equipment(${item.status})}"></span></td>
                     <td class="text-end"><a class="btn btn-sm btn-outline-success" th:href="@{/equipment/{id}/edit(id=${item.equipmentId})}" th:aria-label="${'Sửa ' + item.name}">Chỉnh sửa</a></td>
                 </tr></tbody>
             </table>

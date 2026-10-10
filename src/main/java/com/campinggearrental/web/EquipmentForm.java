@@ -36,6 +36,7 @@ public class EquipmentForm {
         requireFields();
         return new CatalogUpdate(name, categoryId, pricePerDay, totalQuantity, status);
     }
+    public CatalogUpdate toNewCatalogUpdate() { return toCatalogUpdate(); }
 
     private void requireFields() {
         if (totalQuantity == null) throw new IllegalArgumentException("Total quantity is required.");
