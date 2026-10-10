@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.factory.CampingPackageFactory;
+import com.campinggearrental.factory.CampingPackageCreator;
 import com.campinggearrental.model.Category;
 import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.Equipment;
@@ -105,12 +106,14 @@ class RentalWebControllerTest {
                     assertTrue(modelValue instanceof Map<?, ?>);
                     Map<?, ?> packageItems = (Map<?, ?>) modelValue;
                     for (CampingPackageType type : CampingPackageType.values()) {
+                        CampingPackageCreator creator = CampingPackageFactory.creatorFor(type);
+                        var expectedPackage = creator.createPackage();
                         List<?> views = (List<?>) packageItems.get(type);
-                        assertEquals(CampingPackageFactory.create(type).items().size(), views.size());
+                        assertEquals(expectedPackage.items().size(), views.size());
                         for (int index = 0; index < views.size(); index++) {
                             RentalWebController.PackageItemView view = (RentalWebController.PackageItemView) views.get(index);
-                            assertEquals(CampingPackageFactory.create(type).items().get(index).equipmentId(), view.equipmentId());
-                            assertEquals(CampingPackageFactory.create(type).items().get(index).quantity(), view.quantity());
+                            assertEquals(expectedPackage.items().get(index).equipmentId(), view.equipmentId());
+                            assertEquals(expectedPackage.items().get(index).quantity(), view.quantity());
                         }
                     }
                     List<?> soloItems = (List<?>) packageItems.get(CampingPackageType.SOLO);

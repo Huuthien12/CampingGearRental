@@ -8,21 +8,29 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.List;
 
 class CampingPackageFactoryTest {
-    @Test void createsAllPlannedPackageTypes() {
-        assertEquals(3, CampingPackageFactory.create(CampingPackageType.SOLO).items().size());
-        assertEquals(4, CampingPackageFactory.create(CampingPackageType.COUPLE).items().size());
-        assertEquals(5, CampingPackageFactory.create(CampingPackageType.FAMILY).items().size());
+    @Test void selectorReturnsTheConcreteCreatorForEachPackageType() {
+        assertInstanceOf(SoloCampingPackageCreator.class, CampingPackageFactory.creatorFor(CampingPackageType.SOLO));
+        assertInstanceOf(CoupleCampingPackageCreator.class, CampingPackageFactory.creatorFor(CampingPackageType.COUPLE));
+        assertInstanceOf(FamilyCampingPackageCreator.class, CampingPackageFactory.creatorFor(CampingPackageType.FAMILY));
     }
-    @Test void packageDefinitionsUseExpectedQuantities() {
-        assertEquals(new CampingPackageItem("EQ002", 2), CampingPackageFactory.create(CampingPackageType.COUPLE).items().get(1));
-        assertEquals(new CampingPackageItem("EQ005", 1), CampingPackageFactory.create(CampingPackageType.FAMILY).items().getLast());
+    @Test void eachConcreteCreatorBuildsItsOwnPackageVariant() {
+        assertEquals(CampingPackageType.SOLO, new SoloCampingPackageCreator().createPackage().type());
+        assertEquals(CampingPackageType.COUPLE, new CoupleCampingPackageCreator().createPackage().type());
+        assertEquals(CampingPackageType.FAMILY, new FamilyCampingPackageCreator().createPackage().type());
     }
-    @Test void rejectsMissingPackageType() { assertThrows(IllegalArgumentException.class, () -> CampingPackageFactory.create(null)); }
+    @Test void factoryMethodDispatchesPolymorphically() {
+        CampingPackageCreator creator = CampingPackageFactory.creatorFor(CampingPackageType.COUPLE);
+        CampingPackage result = creator.createPackage();
+        assertEquals(CampingPackageType.COUPLE, result.type());
+        assertEquals(new CampingPackageItem("EQ002", 2), result.items().get(1));
+    }
+    @Test void rejectsMissingPackageType() { assertThrows(IllegalArgumentException.class, () -> CampingPackageFactory.creatorFor(null)); }
 
     @ParameterizedTest
     @EnumSource(CampingPackageType.class)
     void preservesFullCompositionAndOrder(CampingPackageType type) {
-        CampingPackage result = CampingPackageFactory.create(type);
+        CampingPackageCreator creator = CampingPackageFactory.creatorFor(type);
+        CampingPackage result = creator.createPackage();
         assertEquals(type, result.type());
         List<CampingPackageItem> expected = switch (type) {
             case SOLO -> List.of(new CampingPackageItem("EQ001", 1), new CampingPackageItem("EQ002", 1),
@@ -39,7 +47,7 @@ class CampingPackageFactoryTest {
     @ParameterizedTest
     @EnumSource(CampingPackageType.class)
     void compositionCannotBeMutatedByCaller(CampingPackageType type) {
-        var items = CampingPackageFactory.create(type).items();
+        var items = CampingPackageFactory.creatorFor(type).createPackage().items();
         assertThrows(UnsupportedOperationException.class, () -> items.add(new CampingPackageItem("OTHER", 1)));
         assertThrows(UnsupportedOperationException.class, () -> items.set(0, new CampingPackageItem("OTHER", 1)));
         assertThrows(UnsupportedOperationException.class, items::clear);
