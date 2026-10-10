@@ -31,7 +31,7 @@ public class EquipmentWebController {
 
     @InitBinder("equipmentForm")
     public void bindForm(WebDataBinder binder, NativeWebRequest request) {
-        binder.setAllowedFields("equipmentId", "name", "categoryId", "pricePerDay", "totalQuantity", "status");
+        binder.setAllowedFields("name", "categoryId", "pricePerDay", "totalQuantity", "status");
         if ("/equipment/{id}/edit".equals(request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE,
                 NativeWebRequest.SCOPE_REQUEST))) {
             binder.setRequiredFields("status");
@@ -61,8 +61,8 @@ public class EquipmentWebController {
         rejectSuppressedFields(errors);
         if (!errors.hasErrors()) {
             try {
-                Equipment equipment = input.toNewEquipment();
-                validateCategory(equipment.getCategoryId(), errors);
+                EquipmentService.CatalogUpdate equipment = input.toNewCatalogUpdate();
+                validateCategory(equipment.categoryId(), errors);
                 if (!errors.hasErrors()) {
                     equipmentService.create(equipment);
                     redirect.addFlashAttribute("success", "Đã thêm thiết bị.");

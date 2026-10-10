@@ -63,6 +63,17 @@ class EquipmentWebTest {
         assertTrue(response.body().contains("/equipment/EQ001/edit"));
     }
 
+    @Test void listRendersOneStatusBadgeForZeroStockAndInactiveEquipment() throws Exception {
+        repository.values.get("EQ001").adjustTotalQuantity(2);
+        String zero = get("/equipment").body();
+        String statusCell = statusCell(zero, "EQ001");
+        assertEquals(1, statusCell.split("Hết hàng", -1).length - 1);
+        repository.values.get("EQ001").setStatus(EquipmentStatus.INACTIVE);
+        String inactive = get("/equipment").body();
+        String inactiveStatus = statusCell(inactive, "EQ001");
+        assertTrue(inactiveStatus.contains("Ngừng cho thuê")); assertFalse(inactiveStatus.contains("Hết hàng"));
+    }
+
     @Test void searchDelegatesToExistingContract() throws Exception {
         assertTrue(get("/equipment?q=Tent").body().contains("EQ001"));
         assertEquals("Tent", repository.lastSearch);
@@ -75,11 +86,12 @@ class EquipmentWebTest {
         assertTrue(html.contains("Lều (CAT001)"));
         assertTrue(html.contains("value=\"CAT001\"") && html.contains("value=\"AVAILABLE\""));
         assertFalse(html.contains("name=\"availableQuantity\""));
-        HttpResponse<String> response = post("/equipment", valid("EQ002"));
+        HttpResponse<String> response = post("/equipment", valid("EQ999"));
         assertEquals(302, response.statusCode(), response.body());
         String location = response.headers().firstValue("location").orElseThrow();
         assertEquals("/equipment", URI.create(location).getPath().split(";", 2)[0]);
-        Equipment created = repository.values.get("EQ002");
+        Equipment created = repository.values.values().stream().filter(e -> e.getName().equals("New tent")).findFirst().orElseThrow();
+        assertTrue(created.getEquipmentId().matches("EQ-[0-9A-F]{8}")); assertFalse(repository.values.containsKey("EQ999"));
         assertEquals(4, created.getAvailableQuantity());
         assertEquals(4, created.getTotalQuantity());
         assertEquals("CAT001", created.getCategoryId());
@@ -183,13 +195,25 @@ class EquipmentWebTest {
     }
 
     @Test void addStillDefaultsStatusWhenPostOmitsIt() throws Exception {
-        assertEquals(302, post("/equipment", valid("EQ002").replace("&status=AVAILABLE", "")).statusCode());
-        assertEquals(EquipmentStatus.AVAILABLE, repository.values.get("EQ002").getStatus());
-        assertEquals(4, repository.values.get("EQ002").getAvailableQuantity());
+        assertEquals(302, post("/equipment", valid("EQ999").replace("&status=AVAILABLE", "")).statusCode());
+        Equipment created = repository.values.values().stream().filter(e -> e.getName().equals("New tent")).findFirst().orElseThrow();
+        assertTrue(created.getEquipmentId().matches("EQ-[0-9A-F]{8}"));
+        assertFalse(repository.values.containsKey("EQ999"));
+        assertEquals(EquipmentStatus.AVAILABLE, created.getStatus());
+        assertEquals(4, created.getAvailableQuantity());
     }
 
     private String valid(String id) {
         return "equipmentId=" + id + "&name=New+tent&categoryId=CAT001&pricePerDay=120&totalQuantity=4&status=AVAILABLE";
+    }
+
+    private String statusCell(String html, String equipmentId) {
+        String marker = "data-testid=\"equipment-status-" + equipmentId + "\"";
+        int start = html.indexOf(marker);
+        assertTrue(start >= 0, "status cell not found for " + equipmentId);
+        int end = html.indexOf("</td>", start);
+        assertTrue(end >= 0, "status cell is not closed for " + equipmentId);
+        return html.substring(start, end);
     }
 
     private HttpResponse<String> get(String path) throws Exception {

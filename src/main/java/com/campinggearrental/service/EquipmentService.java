@@ -9,21 +9,50 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.function.Supplier;
 
 public class EquipmentService {
     private final EquipmentRepository repository;
     private final ConnectionProvider connectionProvider;
+    private final Supplier<String> equipmentIdGenerator;
     public EquipmentService(EquipmentRepository repository) {
-        this(repository, DatabaseConnection.getInstance()::getConnection);
+        this(repository, DatabaseConnection.getInstance()::getConnection, EquipmentService::newEquipmentId);
     }
     public EquipmentService(EquipmentRepository repository, ConnectionProvider connectionProvider) {
+        this(repository, connectionProvider, EquipmentService::newEquipmentId);
+    }
+    EquipmentService(EquipmentRepository repository, ConnectionProvider connectionProvider, Supplier<String> equipmentIdGenerator) {
         this.repository = Objects.requireNonNull(repository);
         this.connectionProvider = Objects.requireNonNull(connectionProvider);
+        this.equipmentIdGenerator = Objects.requireNonNull(equipmentIdGenerator);
     }
     public List<Equipment> list() throws SQLException { return repository.findAll(); }
     public Equipment getById(String id) throws SQLException { return require(id); }
     public List<Equipment> search(String keyword) throws SQLException { return keyword == null || keyword.isBlank() ? list() : repository.search(keyword.trim()); }
     public void create(Equipment equipment) throws SQLException { repository.insert(Objects.requireNonNull(equipment)); }
+    public Equipment create(CatalogUpdate input) throws SQLException {
+        Objects.requireNonNull(input); if (input.status() == null) throw new IllegalArgumentException("Status is required.");
+        for (int attempt = 0; attempt < 5; attempt++) {
+            Equipment equipment = new Equipment(equipmentIdGenerator.get(), input.name(), input.categoryId(), input.pricePerDay(), input.totalQuantity());
+            equipment.setStatus(input.status());
+            try {
+                repository.insert(equipment);
+                return equipment;
+            } catch (SQLException exception) {
+                if (!duplicateEquipmentPrimaryKey(exception) || attempt == 4) throw exception;
+            }
+        }
+        throw new SQLException("could not allocate equipment ID");
+    }
+    private static String newEquipmentId() {
+        return "EQ-" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+    }
+    private static boolean duplicateEquipmentPrimaryKey(SQLException exception) {
+        return exception.getErrorCode() == 1062
+                && exception.getMessage() != null
+                && exception.getMessage().matches("(?i).*for key ['`][^'`]*PRIMARY['`].*");
+    }
     public void update(Equipment equipment) throws SQLException { repository.update(Objects.requireNonNull(equipment)); }
 
     public record CatalogUpdate(String name, String categoryId, BigDecimal pricePerDay,
