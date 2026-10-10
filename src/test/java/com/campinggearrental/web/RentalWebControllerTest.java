@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -114,8 +115,11 @@ class RentalWebControllerTest {
                     }
                     List<?> soloItems = (List<?>) packageItems.get(CampingPackageType.SOLO);
                     assertEquals("Tent", ((RentalWebController.PackageItemView) soloItems.get(0)).name());
+                    assertEquals(5, ((RentalWebController.PackageItemView) soloItems.get(0)).availableQuantity());
+                    assertTrue(((RentalWebController.PackageItemView) soloItems.get(0)).sufficient());
                     RentalWebController.PackageItemView missing = (RentalWebController.PackageItemView) soloItems.get(2);
                     assertEquals(missing.equipmentId(), missing.name());
+                    assertNull(missing.availableQuantity());
                 });
         verify(equipmentService).list();
     }
@@ -334,9 +338,10 @@ class RentalWebControllerTest {
         String detail = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
         String draft = new String(getClass().getResourceAsStream("/templates/rentals/new.html").readAllBytes());
         assertTrue(list.contains("Đơn thuê") && list.contains("customerNames[rental.customerId]") && list.contains("/rentals/custom/new"));
-        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("equipmentNames[detail.equipmentId]") && detail.contains("@presentationLabels.date"));
+        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("equipmentNames[detail.equipmentId]") && detail.contains("@presentationLabels.date") && detail.contains("@presentationLabels.inventoryNote(stateName)"));
         assertTrue(draft.contains("packageItems.get(type)") && draft.contains("@presentationLabels.packageType(type)"));
         assertTrue(draft.contains("item.name + ' × ' + item.quantity") && draft.contains("item.equipmentId"));
+        assertTrue(draft.contains("Số lượng khả dụng có thể thay đổi. Hệ thống sẽ kiểm tra lại khi xác nhận đơn.") && draft.contains("item.availableQuantity"));
         assertTrue(draft.contains("type=\"radio\"") && draft.contains("th:field=\"*{packageType}\""));
         assertTrue(draft.contains("/css/package-rental.css"));
         assertTrue(draft.contains("fragments/customer-picker") && draft.contains("/js/customer-picker.js"));

@@ -93,4 +93,16 @@ public class PresentationLabels {
     public String fallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }
+
+    public String inventoryNote(String rentalState) {
+        if (rentalState == null) return "Không xác định trạng thái giữ thiết bị.";
+        return switch (rentalState) {
+            case "PENDING" -> "Chưa giữ thiết bị.";
+            case "CONFIRMED" -> "Đã giữ thiết bị.";
+            case "RENTED" -> "Thiết bị đang được cho thuê.";
+            case "RETURNED" -> "Thiết bị đã được trả, tồn kho đã hoàn lại.";
+            case "CANCELLED" -> "Đơn đã hủy, không còn giữ thiết bị.";
+            default -> "Không xác định trạng thái giữ thiết bị.";
+        };
+    }
 }

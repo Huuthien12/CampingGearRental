@@ -76,6 +76,18 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
     }
 
     @Override
+    public Optional<RentalOrder> findByIdForUpdate(Connection connection, String id) throws SQLException {
+        if (connection.getAutoCommit()) throw new SQLException("locking requires an active transaction");
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT " + ORDER_COLUMNS + " FROM rental_orders WHERE id = ? FOR UPDATE")) {
+            statement.setString(1, id);
+            try (ResultSet results = statement.executeQuery()) {
+                return results.next() ? Optional.of(readOrder(connection, results)) : Optional.empty();
+            }
+        }
+    }
+
+    @Override
     public List<RentalOrder> findAll() throws SQLException {
         List<RentalOrder> orders = new ArrayList<>();
         try (Connection connection = DatabaseConnection.getInstance().getConnection();

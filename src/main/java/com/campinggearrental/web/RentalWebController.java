@@ -5,6 +5,7 @@ import com.campinggearrental.factory.CampingPackageFactory;
 import com.campinggearrental.factory.CampingPackageItem;
 import com.campinggearrental.factory.CampingPackageType;
 import com.campinggearrental.model.Equipment;
+import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
@@ -103,30 +104,35 @@ public class RentalWebController {
         if (!model.containsAttribute("rentalDraftForm")) model.addAttribute("rentalDraftForm", new RentalDraftForm());
         model.addAttribute("packageTypes", CampingPackageType.values());
         model.addAttribute("customerOptions", customerOptions());
-        Map<String, String> equipmentNames = packageEquipmentNames();
+        Map<String, Equipment> packageEquipment = packageEquipment();
         Map<CampingPackageType, List<PackageItemView>> packageItems = new LinkedHashMap<>();
         for (CampingPackageType type : CampingPackageType.values()) {
             List<PackageItemView> items = CampingPackageFactory.create(type).items().stream()
-                    .map(item -> packageItemView(item, equipmentNames)).toList();
+                    .map(item -> packageItemView(item, packageEquipment)).toList();
             packageItems.put(type, items);
         }
         model.addAttribute("packageItems", packageItems);
         return "rentals/new";
     }
 
-    private Map<String, String> packageEquipmentNames() {
-        Map<String, String> names = new LinkedHashMap<>();
+    private Map<String, Equipment> packageEquipment() {
+        Map<String, Equipment> equipment = new LinkedHashMap<>();
         try {
-            for (Equipment equipment : equipmentService.list()) names.put(equipment.getEquipmentId(), equipment.getName());
+            for (Equipment item : equipmentService.list()) equipment.put(item.getEquipmentId(), item);
         } catch (SQLException ignored) {
             // Package IDs remain a safe presentation fallback when the catalog cannot be read.
         }
-        return names;
+        return equipment;
     }
 
-    private static PackageItemView packageItemView(CampingPackageItem item, Map<String, String> equipmentNames) {
-        String name = equipmentNames.get(item.equipmentId());
-        return new PackageItemView(item.equipmentId(), name == null || name.isBlank() ? item.equipmentId() : name, item.quantity());
+    private static PackageItemView packageItemView(CampingPackageItem item, Map<String, Equipment> equipmentById) {
+        Equipment equipment = equipmentById.get(item.equipmentId());
+        String name = equipment == null || equipment.getName().isBlank() ? item.equipmentId() : equipment.getName();
+        boolean active = equipment != null && equipment.getStatus() == EquipmentStatus.AVAILABLE;
+        boolean sufficient = active && equipment.hasEnoughStock(item.quantity());
+        return new PackageItemView(item.equipmentId(), name, item.quantity(),
+                equipment == null ? null : equipment.getAvailableQuantity(),
+                equipment == null ? null : equipment.getTotalQuantity(), active, sufficient);
     }
 
     @PostMapping
@@ -304,7 +310,8 @@ public class RentalWebController {
         return RentalOrderStatus.fromState(order.getCurrentState()).name();
     }
 
-    public record PackageItemView(String equipmentId, String name, int quantity) { }
+    public record PackageItemView(String equipmentId, String name, int quantity, Integer availableQuantity,
+                                  Integer totalQuantity, boolean active, boolean sufficient) { }
 
     @FunctionalInterface
     private interface LifecycleAction {

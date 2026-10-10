@@ -157,7 +157,7 @@ public class RentalService {
     }
 
     private RentalOrder requireOrder(Connection connection, String id) throws SQLException {
-        return rentalOrderRepository.findById(connection, requiredId(id, "rental order id"))
+        return rentalOrderRepository.findByIdForUpdate(connection, requiredId(id, "rental order id"))
                 .orElseThrow(() -> new IllegalArgumentException("rental order not found: " + id));
     }
 

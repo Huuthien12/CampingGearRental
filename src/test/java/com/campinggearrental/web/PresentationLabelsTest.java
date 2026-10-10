@@ -44,4 +44,13 @@ class PresentationLabelsTest {
         assertEquals("Nguyễn An", labels.fallback("Nguyễn An", "CUS001"));
         assertEquals("CUS001", labels.fallback("", "CUS001"));
     }
+
+    @Test void describesInventoryReservationOnlyFromTheRentalState() {
+        assertEquals("Chưa giữ thiết bị.", labels.inventoryNote("PENDING"));
+        assertEquals("Đã giữ thiết bị.", labels.inventoryNote("CONFIRMED"));
+        assertEquals("Thiết bị đang được cho thuê.", labels.inventoryNote("RENTED"));
+        assertEquals("Thiết bị đã được trả, tồn kho đã hoàn lại.", labels.inventoryNote("RETURNED"));
+        assertEquals("Đơn đã hủy, không còn giữ thiết bị.", labels.inventoryNote("CANCELLED"));
+        assertEquals("Không xác định trạng thái giữ thiết bị.", labels.inventoryNote("UNKNOWN"));
+    }
 }

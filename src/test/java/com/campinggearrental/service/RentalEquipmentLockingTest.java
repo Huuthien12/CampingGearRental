@@ -79,6 +79,7 @@ class RentalEquipmentLockingTest {
         };
         RentalOrderRepository orders = new RentalOrderRepository() {
             public Optional<RentalOrder> findById(String id) { return Optional.of(order); }
+            public Optional<RentalOrder> findByIdForUpdate(Connection connection, String id) { assertSame(tx.connection, connection); return findById(id); }
             public List<RentalOrder> findAll() { return List.of(order); }
             public void insert(RentalOrder value) { }
             public void update(RentalOrder value) { }
