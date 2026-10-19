@@ -55,6 +55,15 @@ public class EquipmentWebController {
         return form(model, null);
     }
 
+    @GetMapping("/{id}")
+    public String detail(@PathVariable("id") String id, Model model) throws SQLException {
+        Equipment equipment = equipmentService.getById(id);
+        model.addAttribute("equipment", equipment);
+        model.addAttribute("categoryName", categoryService.findById(equipment.getCategoryId())
+                .map(Category::getName).orElse(equipment.getCategoryId()));
+        return "equipment/detail";
+    }
+
     @PostMapping
     public String create(@ModelAttribute("equipmentForm") EquipmentForm input, BindingResult errors,
                          Model model, RedirectAttributes redirect) throws SQLException {

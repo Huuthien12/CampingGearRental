@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.campinggearrental.model.PaymentStatus;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
 import java.math.BigDecimal;
@@ -68,6 +69,46 @@ class CheckoutServiceTest {
                 detail("100000.00", 1));
 
         assertThrows(IllegalArgumentException.class, () -> checkoutService.refresh(order));
+    }
+
+    @Test void supportsCustomerPaymentMethodsAndTransferReviewWithoutChangingPricing() {
+        for (PaymentMethod method : List.of(PaymentMethod.CASH, PaymentMethod.BANK_TRANSFER)) {
+            RentalOrder order = order(LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 25), detail("100000.00", 1));
+            order.setPaymentStatus(PaymentStatus.UNPAID);
+            checkoutService.refresh(order);
+            BigDecimal total = order.getTotal();
+
+            checkoutService.selectPaymentMethod(order, method);
+            assertEquals(method, order.getPaymentMethod());
+            assertEquals(total, order.getTotal());
+            if (method != PaymentMethod.CASH) {
+                checkoutService.reportTransfer(order);
+                assertEquals(PaymentStatus.TRANSFER_REPORTED, order.getPaymentStatus());
+                assertThrows(IllegalStateException.class, () -> checkoutService.reportTransfer(order));
+            }
+        }
+        RentalOrder legacy = order(LocalDate.of(2026, 10, 20), LocalDate.of(2026, 10, 25), detail("100000.00", 1));
+        legacy.setPaymentStatus(PaymentStatus.UNPAID);
+        assertThrows(IllegalArgumentException.class, () -> checkoutService.selectPaymentMethod(legacy, PaymentMethod.VIETQR));
+    }
+
+    @Test void onlyReportedTransferCanBeConfirmedReviewedOrRejected() {
+        RentalOrder order = order(LocalDate.now(), LocalDate.now().plusDays(1), detail("100000.00", 1));
+        order.setPaymentStatus(PaymentStatus.UNPAID);
+        checkoutService.selectPaymentMethod(order, PaymentMethod.BANK_TRANSFER);
+        assertThrows(IllegalStateException.class, () -> checkoutService.confirmPayment(order));
+
+        checkoutService.reportTransfer(order);
+        checkoutService.requestReview(order);
+        assertEquals(PaymentStatus.REVIEW_REQUIRED, order.getPaymentStatus());
+        checkoutService.reportTransfer(order);
+        checkoutService.rejectTransfer(order);
+        assertEquals(PaymentStatus.REJECTED, order.getPaymentStatus());
+        checkoutService.reportTransfer(order);
+        checkoutService.confirmPayment(order);
+        assertEquals(PaymentStatus.PAID, order.getPaymentStatus());
+        assertEquals(true, order.getPaidAt() != null);
+        assertThrows(IllegalStateException.class, () -> checkoutService.confirmPayment(order));
     }
 
     private RentalOrder order(LocalDate rentalDate, LocalDate expectedReturnDate, RentalDetail... details) {

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.state.ConfirmedState;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,7 +19,8 @@ class JdbcRentalOrderRepositoryTest {
         LocalDateTime createdAt = LocalDateTime.of(2026, 10, 2, 10, 30);
         RentalOrder order = JdbcRentalOrderRepository.mapOrder("RENT001", "CUS001", LocalDate.of(2026, 10, 1),
                 LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 6), "CONFIRMED", new BigDecimal("400.00"),
-                new BigDecimal("40.00"), new BigDecimal("360.00"), "PAID", createdAt);
+                new BigDecimal("40.00"), new BigDecimal("360.00"), "BANK_TRANSFER", "PAID",
+                LocalDateTime.of(2026, 10, 2, 10, 20), createdAt);
 
         assertEquals("RENT001", order.getId());
         assertEquals("CUS001", order.getCustomerId());
@@ -30,6 +32,8 @@ class JdbcRentalOrderRepositoryTest {
         assertEquals(new BigDecimal("40.00"), order.getDiscount());
         assertEquals(new BigDecimal("360.00"), order.getTotal());
         assertEquals(com.campinggearrental.model.PaymentStatus.PAID, order.getPaymentStatus());
+        assertEquals(PaymentMethod.BANK_TRANSFER, order.getPaymentMethod());
+        assertEquals(LocalDateTime.of(2026, 10, 2, 10, 20), order.getPaidAt());
         assertEquals(createdAt, order.getCreatedAt());
     }
 
@@ -50,9 +54,9 @@ class JdbcRentalOrderRepositoryTest {
     void rejectsInvalidPersistedStatuses() {
         assertThrows(IllegalArgumentException.class, () -> JdbcRentalOrderRepository.mapOrder("RENT001", "CUS001",
                 LocalDate.now(), LocalDate.now(), null, "UNKNOWN", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                "UNPAID", null));
+                null, "UNPAID", null, null));
         assertThrows(IllegalArgumentException.class, () -> JdbcRentalOrderRepository.mapOrder("RENT001", "CUS001",
                 LocalDate.now(), LocalDate.now(), null, "PENDING", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
-                "UNKNOWN", null));
+                null, "UNKNOWN", null, null));
     }
 }

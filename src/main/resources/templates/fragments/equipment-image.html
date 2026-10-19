@@ -1,0 +1,8 @@
+<th:block xmlns:th="http://www.thymeleaf.org">
+    <span th:fragment="image(id, name, variant)" th:class="${'equipment-image ' + variant}">
+        <span class="equipment-image-fallback" aria-hidden="true" hidden>🧰</span>
+        <img th:src="@{/images/equipment/{file}(file=${id + '.jpg'})}" th:alt="${'Ảnh ' + name}" loading="lazy"
+             onload="this.hidden=false;this.previousElementSibling.hidden=true"
+             onerror="this.hidden=true;this.previousElementSibling.hidden=false">
+    </span>
+</th:block>

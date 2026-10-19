@@ -11,7 +11,11 @@
     [...selected.values()].forEach((item, index) => {
       quantityTotal += item.quantity;
       const row = document.createElement('div'); row.className = 'selected-item';
-      row.innerHTML = '<span class="selected-item-icon" aria-hidden="true">🧰</span><div><strong></strong><small></small><span class="selected-price"></span></div><div class="quantity-controls"><button type="button" aria-label="Giảm số lượng">−</button><output></output><button type="button" aria-label="Tăng số lượng">+</button><button type="button" class="remove-item" aria-label="Xóa thiết bị">×</button></div>';
+      row.innerHTML = '<span class="equipment-image selected-item-icon"><span class="equipment-image-fallback" aria-hidden="true" hidden>🧰</span><img loading="lazy"></span><div><strong></strong><small></small><span class="selected-price"></span></div><div class="quantity-controls"><button type="button" aria-label="Giảm số lượng">−</button><output></output><button type="button" aria-label="Tăng số lượng">+</button><button type="button" class="remove-item" aria-label="Xóa thiết bị">×</button></div>';
+      const image = row.querySelector('img'), fallback = row.querySelector('.equipment-image-fallback');
+      const showImage = () => { image.hidden = false; fallback.hidden = true; }, showFallback = () => { image.hidden = true; fallback.hidden = false; };
+      image.addEventListener('load', showImage); image.addEventListener('error', showFallback); image.alt = `Ảnh ${item.name}`; image.src = `/images/equipment/${encodeURIComponent(item.id)}.jpg`;
+      if (image.complete) (image.naturalWidth ? showImage : showFallback)();
       row.querySelector('strong').textContent = item.name; row.querySelector('small').textContent = item.id; row.querySelector('.selected-price').textContent = `${item.price} đ / ngày`; row.querySelector('output').textContent = item.quantity;
       const buttons = row.querySelectorAll('button'); buttons[0].disabled = item.quantity === 1;
       buttons[0].addEventListener('click', () => { item.quantity--; render(); });

@@ -20,7 +20,9 @@ public class RentalOrder {
     private BigDecimal subtotal = BigDecimal.ZERO;
     private BigDecimal discount = BigDecimal.ZERO;
     private BigDecimal total = BigDecimal.ZERO;
+    private PaymentMethod paymentMethod;
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
+    private LocalDateTime paidAt;
     private LocalDateTime createdAt;
 
     private RentalState currentState = new PendingState();
@@ -54,6 +56,12 @@ public class RentalOrder {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public LocalDateTime getPaidAt() { return paidAt; }
+    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

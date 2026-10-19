@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.campinggearrental.model.PaymentStatus;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.model.Equipment;
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.Customer;
@@ -37,6 +38,9 @@ import org.springframework.boot.web.servlet.context.ServletWebServerApplicationC
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import jakarta.servlet.Filter;
+import com.campinggearrental.model.UserRole;
 
 class CheckoutWebViewTest {
     private static ServletWebServerApplicationContext context;
@@ -44,7 +48,7 @@ class CheckoutWebViewTest {
 
     @BeforeAll static void start() {
         SpringApplication app = new SpringApplication(TestConfiguration.class);
-        app.setDefaultProperties(java.util.Map.of("server.port", "0", "spring.main.banner-mode", "off"));
+        app.setDefaultProperties(java.util.Map.of("server.port", "0", "spring.main.banner-mode", "off", "camping.payment.bank-name", "Demo Bank", "camping.payment.account-number", "123456789", "camping.payment.account-name", "CAMPING GEAR RENTAL"));
         context = (ServletWebServerApplicationContext) app.run();
         base = "http://localhost:" + context.getWebServer().getPort();
     }
@@ -59,13 +63,27 @@ class CheckoutWebViewTest {
         assertTrue(response.body().contains("Đang cho thuê"), response.body());
         assertTrue(response.body().contains("Chưa thanh toán"), response.body());
         assertTrue(response.body().contains("Lều Alpine"), response.body());
+        assertTrue(response.body().contains("/images/equipment/EQ001.jpg"), response.body());
+        assertTrue(response.body().contains("equipment-image-checkout"), response.body());
         assertTrue(response.body().contains("100.000 ₫"), response.body());
+        assertTrue(response.body().contains("/images/payment/bank-qr.png"), response.body());
+        assertTrue(response.body().contains("450.000 ₫") && response.body().contains("RENT001"), response.body());
     }
 
     @Configuration(proxyBeanMethods = false)
     @EnableAutoConfiguration
     @Import({CheckoutWebController.class, WebErrorHandler.class, PresentationLabels.class})
     static class TestConfiguration {
+        @Bean FilterRegistrationBean<Filter> authenticatedAdmin() {
+            FilterRegistrationBean<Filter> registration = new FilterRegistrationBean<>();
+            registration.setFilter((request, response, chain) -> {
+                var session = ((jakarta.servlet.http.HttpServletRequest) request).getSession();
+                session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+                session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, UserRole.ADMIN);
+                chain.doFilter(request, response);
+            });
+            return registration;
+        }
         @Bean PricingService pricingService() { return new PricingService(); }
         @Bean PersistedCheckoutService persistedCheckoutService(PricingService pricingService) {
             return new FixedCheckout(pricingService);
@@ -119,7 +137,7 @@ class CheckoutWebViewTest {
             RentalOrder order = new RentalOrder();
             order.setId(id); order.setCustomerId("CUS001"); order.setRentalDate(LocalDate.of(2026, 10, 8));
             order.setExpectedReturnDate(LocalDate.of(2026, 10, 13)); order.setCurrentState(new RentedState());
-            order.setPaymentStatus(PaymentStatus.UNPAID); order.setDetails(List.of(detail));
+            order.setPaymentStatus(PaymentStatus.UNPAID); order.setPaymentMethod(PaymentMethod.BANK_TRANSFER); order.setSubtotal(new BigDecimal("500000")); order.setDiscount(new BigDecimal("50000")); order.setTotal(new BigDecimal("450000")); order.setDetails(List.of(detail));
             return order;
         }
     }

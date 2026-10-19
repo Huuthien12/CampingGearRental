@@ -10,6 +10,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.sql.SQLException;
+import java.util.Optional;
+import com.campinggearrental.model.User;
+import com.campinggearrental.model.UserRole;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,24 +43,47 @@ class WebLoginControllerTest {
                 .andExpect(content().string(containsString("login-mark")))
                 .andExpect(content().string(containsString("Tên đăng nhập")))
                 .andExpect(content().string(containsString("name=\"username\"")))
-                .andExpect(request().sessionAttributeDoesNotExist(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE));
+                .andExpect(request().sessionAttributeDoesNotExist(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE))
+                .andExpect(request().sessionAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE,
+                        org.hamcrest.Matchers.matchesPattern("[A-Za-z0-9_-]{43}")));
     }
 
     @Test
     void validLoginCreatesAuthenticatedSessionAndRedirectsToDashboard() throws Exception {
-        when(authService.login("admin", "admin123")).thenReturn(true);
+        when(authService.authenticate("admin", "admin123"))
+                .thenReturn(Optional.of(new User("USR001", "admin", "hash", UserRole.ADMIN, null)));
 
-        mockMvc.perform(post("/login").param("username", "admin").param("password", "admin123"))
+        mockMvc.perform(post("/login").session(csrfSession()).param("_csrf", "test-token").param("username", "admin").param("password", "admin123"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/dashboard"))
-                .andExpect(request().sessionAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin"));
+                .andExpect(request().sessionAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin"))
+                .andExpect(request().sessionAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, UserRole.ADMIN))
+                .andExpect(request().sessionAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE,
+                        org.hamcrest.Matchers.matchesPattern("[A-Za-z0-9_-]{43}")))
+                .andExpect(result -> assertTrue(result.getRequest().getSession().getMaxInactiveInterval() == 1800));
+    }
+
+    @Test
+    void validLoginReplacesExistingSessionToPreventFixation() throws Exception {
+        when(authService.authenticate("admin", "admin123"))
+                .thenReturn(Optional.of(new User("USR001", "admin", "hash", UserRole.ADMIN, null)));
+        MockHttpSession oldSession = new MockHttpSession();
+        oldSession.setAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE, "test-token");
+        String oldId = oldSession.getId();
+
+        var result = mockMvc.perform(post("/login").session(oldSession)
+                        .param("_csrf", "test-token").param("username", "admin").param("password", "admin123"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+
+        assertTrue(oldSession.isInvalid());
+        assertTrue(!oldId.equals(result.getRequest().getSession().getId()));
     }
 
     @Test
     void invalidLoginShowsErrorAndDoesNotCreateSession() throws Exception {
-        when(authService.login("admin", "wrong")).thenReturn(false);
+        when(authService.authenticate("admin", "wrong")).thenReturn(Optional.empty());
 
-        mockMvc.perform(post("/login").param("username", "admin").param("password", "wrong"))
+        mockMvc.perform(post("/login").session(csrfSession()).param("_csrf", "test-token").param("username", "admin").param("password", "wrong"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andExpect(request().sessionAttributeDoesNotExist(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE));
@@ -74,6 +100,8 @@ class WebLoginControllerTest {
     void authenticatedDashboardShowsAllModuleNavigation() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+        session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, UserRole.ADMIN);
+        session.setAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE, "test-token");
 
         mockMvc.perform(get("/dashboard").session(session))
                 .andExpect(status().isOk())
@@ -98,8 +126,10 @@ class WebLoginControllerTest {
     void logoutInvalidatesSessionAndRedirectsToLogin() throws Exception {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+        session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, UserRole.ADMIN);
+        session.setAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE, "test-token");
 
-        mockMvc.perform(post("/logout").session(session))
+        mockMvc.perform(post("/logout").session(session).param("_csrf", "test-token"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login"));
 
@@ -108,18 +138,24 @@ class WebLoginControllerTest {
 
     @Test
     void authenticationDatabaseErrorDoesNotExposeExceptionDetails() throws Exception {
-        when(authService.login("admin", "admin123"))
+        when(authService.authenticate("admin", "admin123"))
                 .thenThrow(new SQLException("password=database-secret"));
 
-        var result = mockMvc.perform(post("/login").param("username", "admin").param("password", "admin123"))
+        var result = mockMvc.perform(post("/login").session(csrfSession()).param("_csrf", "test-token").param("username", "admin").param("password", "admin123"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
                 .andReturn();
 
-        assertNull(result.getRequest().getSession(false));
+        assertNull(result.getRequest().getSession(false).getAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE));
         String renderedPage = result.getResponse().getContentAsString();
         assertTrue(renderedPage.contains("Không thể đăng nhập lúc này."));
         assertTrue(!renderedPage.contains("database-secret"));
         assertTrue(!renderedPage.contains("SQLException"));
+    }
+
+    private MockHttpSession csrfSession() {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE, "test-token");
+        return session;
     }
 }

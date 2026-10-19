@@ -26,11 +26,15 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Bean PersistedCheckoutService persistedCheckoutService(RentalOrderRepository r, CheckoutService c) { return new PersistedCheckoutService(r,c); }
 
     @Bean AuthenticationInterceptor authenticationInterceptor() { return new AuthenticationInterceptor(); }
+    @Bean CsrfProtectionInterceptor csrfProtectionInterceptor() { return new CsrfProtectionInterceptor(); }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(csrfProtectionInterceptor())
+                .addPathPatterns("/**")
+                .excludePathPatterns("/error", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**");
         registry.addInterceptor(authenticationInterceptor())
                 .addPathPatterns("/**")
-                .excludePathPatterns("/", "/login", "/error", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**");
+                .excludePathPatterns("/", "/login", "/register", "/error", "/favicon.ico", "/css/**", "/js/**", "/images/**", "/webjars/**");
     }
 }

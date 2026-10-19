@@ -96,6 +96,32 @@ class RentalWebControllerTest {
         mockMvc.perform(get("/rentals/MISSING").session(authenticatedSession())).andExpect(status().isOk()).andExpect(view().name("error/404"));
     }
 
+    @Test void customerCannotReadOrCancelAnotherCustomersOrderByChangingUrlId() throws Exception {
+        RentalOrder foreignOrder = order("FOREIGN");
+        foreignOrder.setCustomerId("CUS999");
+        when(rentalOrderService.findById("FOREIGN")).thenReturn(foreignOrder);
+
+        mockMvc.perform(get("/rentals/FOREIGN").session(customerSession()))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/rentals/FOREIGN/cancel").session(customerSession()))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(rentalService);
+    }
+
+    @Test void customerCannotForgeCustomerIdWhenCreatingPackageOrder() throws Exception {
+        RentalOrder order = order("OWN");
+        when(campingPackageDraftService.createDraftFromPackage(eq("CUS001"), eq(LocalDate.of(2026, 10, 8)),
+                eq(LocalDate.of(2026, 10, 13)), eq(CampingPackageType.SOLO))).thenReturn(order);
+
+        mockMvc.perform(post("/rentals").session(customerSession()).param("customerId", "CUS999")
+                        .param("rentalDate", "2026-10-08").param("expectedReturnDate", "2026-10-13")
+                        .param("packageType", "SOLO"))
+                .andExpect(status().is3xxRedirection());
+
+        verify(campingPackageDraftService).createDraftFromPackage("CUS001", LocalDate.of(2026, 10, 8),
+                LocalDate.of(2026, 10, 13), CampingPackageType.SOLO);
+    }
+
     @Test void opensDraftFormWithSupportedPackageTypes() throws Exception {
         when(equipmentService.list()).thenReturn(List.of(equipment("EQ001"),
                 new Equipment("EQ002", "Túi ngủ", "CAT001", new BigDecimal("100.00"), 5, 5, EquipmentStatus.AVAILABLE)));
@@ -183,9 +209,14 @@ class RentalWebControllerTest {
         String customerPicker = new String(getClass().getResourceAsStream("/static/js/customer-picker.js").readAllBytes());
         String css = new String(getClass().getResourceAsStream("/static/css/custom-rental.css").readAllBytes());
         assertTrue(template.contains("equipmentOptions") && template.contains("categories"));
-        assertTrue(template.contains("/css/custom-rental.css") && template.contains("/js/custom-rental.js"));
+        assertTrue(template.contains("fragments/equipment-image") && script.contains("/images/equipment/${encodeURIComponent(item.id)}.jpg"));
+        assertTrue(script.contains("addEventListener('load', showImage)") && script.contains("image.complete")
+                && script.contains("image.naturalWidth ? showImage : showFallback"));
+        assertTrue(template.contains("/css/custom-rental.css(v='20261019-2')") && template.contains("/js/custom-rental.js"));
         assertTrue(script.contains("items[${index}].equipmentId") && script.contains("selected.delete"));
         assertTrue(css.contains("@media (max-width: 1199px)") && css.contains("@media (max-width: 767px)"));
+        assertTrue(css.contains("grid-template-columns: repeat(4, minmax(0, 1fr))")
+                && css.contains(".equipment-image-card { width: calc(100% - 1.2rem); height: 90px;"));
         assertTrue(template.contains("fragments/customer-picker") && template.contains("/js/customer-picker.js"));
         assertTrue(customerPicker.contains("customerId") && customerPicker.contains("toLocaleLowerCase"));
     }
@@ -341,7 +372,7 @@ class RentalWebControllerTest {
         String detail = new String(getClass().getResourceAsStream("/templates/rentals/detail.html").readAllBytes());
         String draft = new String(getClass().getResourceAsStream("/templates/rentals/new.html").readAllBytes());
         assertTrue(list.contains("Đơn thuê") && list.contains("customerNames[rental.customerId]") && list.contains("/rentals/custom/new"));
-        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("equipmentNames[detail.equipmentId]") && detail.contains("@presentationLabels.date") && detail.contains("@presentationLabels.inventoryNote(stateName)"));
+        assertTrue(detail.contains("Đơn giá tại thời điểm tạo đơn") && detail.contains("equipmentNames[detail.equipmentId]") && detail.contains("equipment-image-order") && detail.contains("@presentationLabels.date") && detail.contains("@presentationLabels.inventoryNote(stateName)"));
         assertTrue(draft.contains("packageItems.get(type)") && draft.contains("@presentationLabels.packageType(type)"));
         assertTrue(draft.contains("item.name + ' × ' + item.quantity") && draft.contains("item.equipmentId"));
         assertTrue(draft.contains("Số lượng khả dụng có thể thay đổi. Hệ thống sẽ kiểm tra lại khi xác nhận đơn.") && draft.contains("item.availableQuantity"));
@@ -359,6 +390,15 @@ class RentalWebControllerTest {
     private static MockHttpSession authenticatedSession() {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+        session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, com.campinggearrental.model.UserRole.ADMIN);
+        return session;
+    }
+
+    private static MockHttpSession customerSession() {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "customer");
+        session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, com.campinggearrental.model.UserRole.CUSTOMER);
+        session.setAttribute(WebLoginController.AUTHENTICATED_CUSTOMER_ATTRIBUTE, "CUS001");
         return session;
     }
 

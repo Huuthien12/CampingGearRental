@@ -1,7 +1,13 @@
 CREATE TABLE users (
     id VARCHAR(20) PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    customer_id VARCHAR(20),
+    CONSTRAINT chk_user_role CHECK (role IN ('ADMIN', 'CUSTOMER')),
+    CONSTRAINT chk_user_customer_link CHECK (
+        (role = 'ADMIN' AND customer_id IS NULL) OR (role = 'CUSTOMER' AND customer_id IS NOT NULL)
+    )
 );
 
 CREATE TABLE customers (
@@ -11,6 +17,8 @@ CREATE TABLE customers (
     email VARCHAR(255),
     address VARCHAR(255)
 );
+
+ALTER TABLE users ADD CONSTRAINT fk_user_customer FOREIGN KEY (customer_id) REFERENCES customers(id);
 
 CREATE TABLE categories (
     id VARCHAR(20) PRIMARY KEY,
@@ -41,11 +49,15 @@ CREATE TABLE rental_orders (
     subtotal DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     discount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
     total DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
+    payment_method VARCHAR(20),
     payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
+    paid_at DATETIME,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_rental_order_customer FOREIGN KEY (customer_id) REFERENCES customers(id),
     CONSTRAINT chk_rental_dates CHECK (expected_return_date >= rental_date),
-    CONSTRAINT chk_rental_amounts CHECK (subtotal >= 0 AND discount >= 0 AND total >= 0)
+    CONSTRAINT chk_rental_amounts CHECK (subtotal >= 0 AND discount >= 0 AND total >= 0),
+    CONSTRAINT chk_payment_method CHECK (payment_method IS NULL OR payment_method IN ('CASH', 'BANK_TRANSFER', 'VIETQR')),
+    CONSTRAINT chk_payment_status CHECK (payment_status IN ('UNPAID', 'TRANSFER_REPORTED', 'REVIEW_REQUIRED', 'REJECTED', 'PAID'))
 );
 
 CREATE TABLE rental_details (
