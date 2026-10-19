@@ -1,5 +1,5 @@
 package com.campinggearrental.model;
 
 public enum PaymentStatus {
-    UNPAID, PAID
+    UNPAID, TRANSFER_REPORTED, REVIEW_REQUIRED, REJECTED, PAID
 }

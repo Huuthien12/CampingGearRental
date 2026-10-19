@@ -5,11 +5,12 @@
         <div class="collapse navbar-collapse" id="main-navigation">
             <div class="navbar-nav ms-lg-auto align-items-lg-center gap-lg-1">
                 <a class="nav-link" th:href="@{/dashboard}">Tổng quan</a>
-                <a class="nav-link" th:href="@{/customers}">Khách hàng</a>
+                <a class="nav-link" th:if="${session.authenticatedRole?.name() == 'ADMIN'}" th:href="@{/customers}">Khách hàng</a>
                 <a class="nav-link" th:href="@{/equipment}">Thiết bị</a>
                 <a class="nav-link" th:href="@{/rentals}">Đơn thuê</a>
-                <a class="nav-link" th:href="@{/checkout}">Thanh toán</a>
+                <a class="nav-link" th:if="${session.authenticatedRole?.name() == 'ADMIN'}" th:href="@{/checkout}">Thanh toán</a>
                 <form class="ms-lg-2 my-2 my-lg-0" method="post" th:action="@{/logout}">
+                    <input type="hidden" name="_csrf" th:value="${session.csrfToken}">
                     <button class="btn btn-outline-light btn-sm" type="submit">Đăng xuất</button>
                 </form>
             </div>

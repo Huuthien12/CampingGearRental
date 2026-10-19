@@ -7,7 +7,7 @@
     <section class="camping-page-header mb-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div><p class="section-eyebrow mb-1">DANH MỤC CẮM TRẠI</p><h1 class="h2 mb-1">Thiết bị</h1><p class="text-muted mb-0">Theo dõi giá thuê và số lượng sẵn sàng.</p></div>
-            <a class="btn btn-success" th:href="@{/equipment/new}">Thêm thiết bị</a>
+            <a class="btn btn-success" th:if="${session.authenticatedRole?.name() == 'ADMIN'}" th:href="@{/equipment/new}">Thêm thiết bị</a>
         </div>
     </section>
     <th:block th:replace="~{fragments/alerts :: alerts(${success}, ${error})}"></th:block>
@@ -24,12 +24,12 @@
                 <caption>Đơn giá theo ngày (VND). Tồn kho hiển thị số lượng sẵn sàng / tổng số lượng.</caption>
                 <thead><tr><th scope="col">Tên thiết bị</th><th scope="col">Loại</th><th scope="col">Đơn giá/ngày</th><th scope="col">Sẵn sàng / Tổng</th><th scope="col">Trạng thái</th><th scope="col" class="text-end">Thao tác</th></tr></thead>
                 <tbody><tr th:each="item : ${equipment}">
-                    <td><span class="fw-semibold" th:text="${item.name}"></span><small class="d-block text-muted" th:text="${item.equipmentId}"></small></td>
+                    <td><div class="equipment-name-cell"><th:block th:replace="~{fragments/equipment-image :: image(${item.equipmentId}, ${item.name}, 'equipment-image-list')}"></th:block><span><a class="link-success fw-semibold" th:href="@{/equipment/{id}(id=${item.equipmentId})}" th:text="${item.name}"></a><small class="d-block text-muted" th:text="${item.equipmentId}"></small></span></div></td>
                     <td><span th:text="${@presentationLabels.category(categoryNames[item.categoryId] ?: item.categoryId)}"></span><small class="d-block text-muted" th:text="${item.categoryId}"></small></td>
                     <td th:text="${#numbers.formatDecimal(item.pricePerDay, 1, 'COMMA', 2, 'POINT') + ' VND'}"></td>
                     <td><span th:text="${item.availableQuantity + ' / ' + item.totalQuantity}"></span><span class="badge text-bg-warning ms-1" th:if="${item.availableQuantity == 0}">Hết hàng</span></td>
                     <td th:attr="data-testid=${'equipment-status-' + item.equipmentId}"><span class="badge text-bg-warning" th:if="${item.status.name() == 'AVAILABLE' and item.availableQuantity == 0}">Hết hàng</span><span th:if="${item.status.name() != 'AVAILABLE' or item.availableQuantity > 0}" th:replace="~{fragments/status-badges :: equipment(${item.status})}"></span></td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-success" th:href="@{/equipment/{id}/edit(id=${item.equipmentId})}" th:aria-label="${'Sửa ' + item.name}">Chỉnh sửa</a></td>
+                    <td class="text-end"><a class="btn btn-sm btn-outline-success" th:if="${session.authenticatedRole?.name() == 'ADMIN'}" th:href="@{/equipment/{id}/edit(id=${item.equipmentId})}" th:aria-label="${'Sửa ' + item.name}">Chỉnh sửa</a></td>
                 </tr></tbody>
             </table>
         </div>

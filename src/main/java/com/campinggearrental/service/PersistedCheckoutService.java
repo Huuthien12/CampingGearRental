@@ -1,6 +1,7 @@
 package com.campinggearrental.service;
 
 import com.campinggearrental.model.RentalOrder;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.repository.RentalOrderRepository;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -24,6 +25,10 @@ public class PersistedCheckoutService {
 
     public RentalOrder refreshPricing(String rentalId) throws SQLException {
         RentalOrder order = load(rentalId);
+        if (order.getPaymentStatus() == com.campinggearrental.model.PaymentStatus.PAID
+                || order.getPaymentStatus() == com.campinggearrental.model.PaymentStatus.TRANSFER_REPORTED) {
+            throw new IllegalStateException("pricing is locked for this payment status");
+        }
         Snapshot snapshot = Snapshot.of(order);
         try {
             checkoutService.refresh(order);
@@ -35,11 +40,45 @@ public class PersistedCheckoutService {
         }
     }
 
-    public RentalOrder confirmPayment(String rentalId) throws SQLException {
+    // shortcut: the demo runs one application instance; use a conditional SQL update before horizontal scaling.
+    public synchronized RentalOrder confirmPayment(String rentalId) throws SQLException {
         RentalOrder order = load(rentalId);
         Snapshot snapshot = Snapshot.of(order);
         try {
-            checkoutService.refreshAndConfirmPayment(order);
+            if (order.getPaymentStatus() == com.campinggearrental.model.PaymentStatus.TRANSFER_REPORTED) {
+                checkoutService.confirmPayment(order);
+            } else {
+                checkoutService.refreshAndConfirmPayment(order);
+            }
+            rentalOrderRepository.update(order);
+            return order;
+        } catch (SQLException | RuntimeException exception) {
+            snapshot.restore(order);
+            throw exception;
+        }
+    }
+
+    public RentalOrder selectPaymentMethod(String rentalId, PaymentMethod method) throws SQLException {
+        return updatePayment(rentalId, order -> checkoutService.selectPaymentMethod(order, method));
+    }
+
+    public RentalOrder reportTransfer(String rentalId) throws SQLException {
+        return updatePayment(rentalId, checkoutService::reportTransfer);
+    }
+
+    public RentalOrder requestReview(String rentalId) throws SQLException {
+        return updatePayment(rentalId, checkoutService::requestReview);
+    }
+
+    public RentalOrder rejectTransfer(String rentalId) throws SQLException {
+        return updatePayment(rentalId, checkoutService::rejectTransfer);
+    }
+
+    private RentalOrder updatePayment(String rentalId, java.util.function.Consumer<RentalOrder> change) throws SQLException {
+        RentalOrder order = load(rentalId);
+        Snapshot snapshot = Snapshot.of(order);
+        try {
+            change.accept(order);
             rentalOrderRepository.update(order);
             return order;
         } catch (SQLException | RuntimeException exception) {
@@ -53,16 +92,19 @@ public class PersistedCheckoutService {
         return rentalId.trim();
     }
 
-    private record Snapshot(BigDecimal subtotal, BigDecimal discount, BigDecimal total,
-                            com.campinggearrental.model.PaymentStatus paymentStatus) {
+    private record Snapshot(BigDecimal subtotal, BigDecimal discount, BigDecimal total, PaymentMethod paymentMethod,
+                            com.campinggearrental.model.PaymentStatus paymentStatus, java.time.LocalDateTime paidAt) {
         static Snapshot of(RentalOrder order) {
-            return new Snapshot(order.getSubtotal(), order.getDiscount(), order.getTotal(), order.getPaymentStatus());
+            return new Snapshot(order.getSubtotal(), order.getDiscount(), order.getTotal(), order.getPaymentMethod(),
+                    order.getPaymentStatus(), order.getPaidAt());
         }
         void restore(RentalOrder order) {
             order.setSubtotal(subtotal);
             order.setDiscount(discount);
             order.setTotal(total);
+            order.setPaymentMethod(paymentMethod);
             order.setPaymentStatus(paymentStatus);
+            order.setPaidAt(paidAt);
         }
     }
 }

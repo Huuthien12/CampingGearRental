@@ -1,6 +1,7 @@
 package com.campinggearrental.web;
 
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import com.campinggearrental.factory.CampingPackageFactory;
 import com.campinggearrental.factory.CampingPackageCreator;
 import com.campinggearrental.factory.CampingPackageItem;
@@ -10,6 +11,7 @@ import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.Customer;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
+import com.campinggearrental.model.UserRole;
 import com.campinggearrental.service.CampingPackageDraftService;
 import com.campinggearrental.service.CategoryService;
 import com.campinggearrental.service.CustomerService;
@@ -62,8 +64,9 @@ public class RentalWebController {
     }
 
     @GetMapping
-    public String list(Model model) throws SQLException {
-        List<RentalOrder> rentals = rentalOrderService.findAll();
+    public String list(Model model, HttpSession session) throws SQLException {
+        List<RentalOrder> rentals = rentalOrderService.findAll().stream()
+                .filter(order -> isAdmin(session) || order.getCustomerId().equals(customerId(session))).toList();
         Map<String, String> states = new LinkedHashMap<>();
         rentals.forEach(rental -> states.put(rental.getId(), stateName(rental)));
         model.addAttribute("rentals", rentals);
@@ -73,9 +76,14 @@ public class RentalWebController {
     }
 
     @GetMapping("/{id}")
-    public String detail(@PathVariable("id") String id, Model model) throws SQLException {
+    public String detail(@PathVariable("id") String id, Model model, HttpSession session,
+                         HttpServletResponse response) throws SQLException {
         RentalOrder order = rentalOrderService.findById(id);
         if (order == null) return "error/404";
+        if (!mayAccess(order, session)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return "error";
+        }
         model.addAttribute("order", order);
         model.addAttribute("stateName", stateName(order));
         model.addAttribute("customerNames", customerNames());
@@ -101,8 +109,10 @@ public class RentalWebController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model) {
+    public String newForm(Model model, HttpSession session) {
         if (!model.containsAttribute("rentalDraftForm")) model.addAttribute("rentalDraftForm", new RentalDraftForm());
+        if (!isAdmin(session)) ((RentalDraftForm) model.getAttribute("rentalDraftForm")).setCustomerId(customerId(session));
+        model.addAttribute("isAdmin", isAdmin(session));
         model.addAttribute("packageTypes", CampingPackageType.values());
         model.addAttribute("customerOptions", customerOptions());
         Map<String, Equipment> packageEquipment = packageEquipment();
@@ -139,10 +149,11 @@ public class RentalWebController {
 
     @PostMapping
     public String create(@ModelAttribute("rentalDraftForm") RentalDraftForm form, BindingResult errors,
-            Model model, RedirectAttributes redirect) {
+            Model model, RedirectAttributes redirect, HttpSession session) {
+        if (!isAdmin(session)) form.setCustomerId(customerId(session));
         rejectUnexpectedFields(errors, "Thiết bị và số lượng trong gói được máy chủ xác định.");
         validate(form, errors);
-        if (errors.hasErrors()) return newForm(model);
+        if (errors.hasErrors()) return newForm(model, session);
         try {
             RentalOrder order = campingPackageDraftService.createDraftFromPackage(form.getCustomerId().trim(),
                     form.getRentalDate(), form.getExpectedReturnDate(), form.getPackageType());
@@ -153,16 +164,19 @@ public class RentalWebController {
         } catch (SQLException exception) {
             errors.reject("saveFailed", "Không thể tạo đơn thuê nháp. Vui lòng thử lại.");
         }
-        return newForm(model);
+        return newForm(model, session);
     }
 
     @GetMapping("/custom/new")
-    public String customNewForm(Model model) throws SQLException {
+    public String customNewForm(Model model, HttpSession session) throws SQLException {
         if (!model.containsAttribute("customRentalDraftForm")) {
             CustomRentalDraftForm form = new CustomRentalDraftForm();
             form.setItems(new ArrayList<>(List.of(new CustomRentalItemForm())));
             model.addAttribute("customRentalDraftForm", form);
         }
+        CustomRentalDraftForm draft = (CustomRentalDraftForm) model.getAttribute("customRentalDraftForm");
+        if (!isAdmin(session)) draft.setCustomerId(customerId(session));
+        model.addAttribute("isAdmin", isAdmin(session));
         model.addAttribute("equipmentOptions", equipmentService.list());
         model.addAttribute("categories", categoryService.list());
         model.addAttribute("customerOptions", customerOptions());
@@ -191,15 +205,16 @@ public class RentalWebController {
 
     @PostMapping("/custom")
     public String createCustom(@ModelAttribute("customRentalDraftForm") CustomRentalDraftForm form, BindingResult errors,
-            Model model, RedirectAttributes redirect, HttpServletResponse response) throws SQLException {
+            Model model, RedirectAttributes redirect, HttpServletResponse response, HttpSession session) throws SQLException {
+        if (!isAdmin(session)) form.setCustomerId(customerId(session));
         rejectUnexpectedFields(errors, "Chỉ được gửi mã thiết bị và số lượng khi thuê từng món.");
         if (hasSparseItems(form.getItems())) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             errors.reject("malformedItems", "Các dòng thiết bị phải có chỉ số liên tiếp.");
-            return customNewForm(model);
+            return customNewForm(model, session);
         }
         validateCustom(form, errors);
-        if (errors.hasErrors()) return customNewForm(model);
+        if (errors.hasErrors()) return customNewForm(model, session);
         try {
             List<RentalService.RentalRequestItem> items = form.getItems().stream()
                     .map(item -> new RentalService.RentalRequestItem(item.getEquipmentId(), item.getQuantity()))
@@ -213,7 +228,7 @@ public class RentalWebController {
         } catch (SQLException exception) {
             errors.reject("saveFailed", "Không thể tạo đơn thuê nháp. Vui lòng thử lại.");
         }
-        return customNewForm(model);
+        return customNewForm(model, session);
     }
 
     @ExceptionHandler(InvalidPropertyException.class)
@@ -234,8 +249,29 @@ public class RentalWebController {
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancel(@PathVariable("id") String id, RedirectAttributes redirect) {
+    public String cancel(@PathVariable("id") String id, RedirectAttributes redirect, HttpSession session,
+                         HttpServletResponse response) throws SQLException {
+        if (!isAdmin(session)) {
+            RentalOrder order = rentalOrderService.findById(id);
+            if (order == null || !mayAccess(order, session)) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return "error";
+            }
+        }
         return lifecycle(id, "Đã hủy đơn thuê.", rentalService::cancelRental, redirect);
+    }
+
+    private boolean mayAccess(RentalOrder order, HttpSession session) {
+        return isAdmin(session) || order.getCustomerId().equals(customerId(session));
+    }
+
+    private boolean isAdmin(HttpSession session) {
+        return session.getAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE) == UserRole.ADMIN;
+    }
+
+    private String customerId(HttpSession session) {
+        Object value = session.getAttribute(WebLoginController.AUTHENTICATED_CUSTOMER_ATTRIBUTE);
+        return value == null ? "" : value.toString();
     }
 
     @PostMapping("/{id}/return")

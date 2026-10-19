@@ -92,6 +92,7 @@ class CustomerWebControllerTest {
                 .thenReturn(customer());
 
         mockMvc.perform(post("/customers")
+                        .param("_csrf", "test-token")
                         .param("fullName", "Nguyen An")
                         .param("phone", "0900000001")
                         .param("email", "an@example.com")
@@ -107,7 +108,7 @@ class CustomerWebControllerTest {
         when(customerService.add(null, null, null, null))
                 .thenThrow(new IllegalArgumentException("Tên và số điện thoại là bắt buộc."));
 
-        mockMvc.perform(post("/customers").session(authenticatedSession()))
+        mockMvc.perform(post("/customers").param("_csrf", "test-token").session(authenticatedSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("customers/form"))
                 .andExpect(model().attribute("error", "Tên và số điện thoại là bắt buộc."));
@@ -124,6 +125,7 @@ class CustomerWebControllerTest {
                 .andExpect(model().attribute("customer", original));
 
         mockMvc.perform(post("/customers/CUS001")
+                        .param("_csrf", "test-token")
                         .param("fullName", "Nguyen An Updated")
                         .param("phone", "0900000001")
                         .param("email", "an@example.com")
@@ -149,6 +151,8 @@ class CustomerWebControllerTest {
     private MockHttpSession authenticatedSession() {
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(WebLoginController.AUTHENTICATED_USER_ATTRIBUTE, "admin");
+        session.setAttribute(WebLoginController.AUTHENTICATED_ROLE_ATTRIBUTE, com.campinggearrental.model.UserRole.ADMIN);
+        session.setAttribute(WebLoginController.CSRF_TOKEN_ATTRIBUTE, "test-token");
         return session;
     }
 

@@ -71,6 +71,27 @@ class PersistedCheckoutServiceTest {
         assertEquals(PaymentStatus.UNPAID, store.order.getPaymentStatus());
     }
 
+    @Test void locksPricingAfterTransferReportOrPayment() throws Exception {
+        Store store = new Store(order(PaymentStatus.TRANSFER_REPORTED, "100.00", 1));
+        PersistedCheckoutService service = service(store);
+        assertThrows(IllegalStateException.class, () -> service.refreshPricing("RENT001"));
+        store.order.setPaymentStatus(PaymentStatus.PAID);
+        assertThrows(IllegalStateException.class, () -> service.refreshPricing("RENT001"));
+        assertEquals(0, store.updates);
+    }
+
+    @Test void confirmsReportedTransferWithoutRepricingItsLockedSnapshot() throws Exception {
+        Store store = new Store(order(PaymentStatus.TRANSFER_REPORTED, "100.00", 1));
+        store.order.setPaymentMethod(com.campinggearrental.model.PaymentMethod.BANK_TRANSFER);
+        store.order.setSubtotal(new BigDecimal("777.00")); store.order.setDiscount(new BigDecimal("77.00")); store.order.setTotal(new BigDecimal("700.00"));
+
+        service(store).confirmPayment("RENT001");
+
+        assertEquals(PaymentStatus.PAID, store.order.getPaymentStatus());
+        assertEquals(new BigDecimal("777.00"), store.order.getSubtotal());
+        assertEquals(new BigDecimal("77.00"), store.order.getDiscount()); assertEquals(new BigDecimal("700.00"), store.order.getTotal());
+    }
+
     private static PersistedCheckoutService service(Store store) {
         return new PersistedCheckoutService(store, new CheckoutService(new RentalPricingAdapter(new PricingService())));
     }

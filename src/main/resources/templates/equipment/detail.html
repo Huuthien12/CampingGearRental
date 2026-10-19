@@ -1,0 +1,8 @@
+<!doctype html><html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Chi tiết thiết bị')}"/></head><body>
+<nav th:replace="~{fragments/navigation :: navigation}"></nav><main class="container py-4 py-md-5">
+<a class="btn btn-outline-secondary mb-3" th:href="@{/equipment}">Quay lại thiết bị</a>
+<section class="camping-page-header"><p class="section-eyebrow">CHI TIẾT THIẾT BỊ</p><h1 class="h2" th:text="${equipment.name}"></h1><th:block th:replace="~{fragments/equipment-image :: image(${equipment.equipmentId}, ${equipment.name}, 'equipment-image-detail')}"></th:block>
+<dl class="row mb-0"><dt class="col-sm-4">Mã thiết bị</dt><dd class="col-sm-8" th:text="${equipment.equipmentId}"></dd><dt class="col-sm-4">Loại</dt><dd class="col-sm-8" th:text="${categoryName}"></dd><dt class="col-sm-4">Giá thuê/ngày</dt><dd class="col-sm-8" th:text="${@presentationLabels.money(equipment.pricePerDay)}"></dd><dt class="col-sm-4">Sẵn sàng / Tổng</dt><dd class="col-sm-8" th:text="${equipment.availableQuantity + ' / ' + equipment.totalQuantity}"></dd><dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8"><span th:replace="~{fragments/status-badges :: equipment(${equipment.status})}"></span></dd></dl>
+<a class="btn btn-success mt-3" th:if="${session.authenticatedRole?.name() == 'ADMIN'}" th:href="@{/equipment/{id}/edit(id=${equipment.equipmentId})}">Chỉnh sửa</a></section>
+</main></body></html>

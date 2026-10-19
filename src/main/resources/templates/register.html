@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><th:block th:replace="~{fragments/head :: head('Đăng ký')}"/></head>
+<body class="login-page"><main class="container py-5"><section class="login-card mx-auto">
+    <p class="section-eyebrow">CAMPING GEAR RENTAL</p><h1 class="h2">Đăng ký khách hàng</h1>
+    <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
+    <form method="post" th:action="@{/register}"><input type="hidden" name="_csrf" th:value="${session.csrfToken}">
+        <label class="form-label" for="username">Tên đăng nhập</label><input class="form-control mb-3" id="username" name="username" th:value="${username}" required maxlength="50">
+        <label class="form-label" for="password">Mật khẩu (ít nhất 8 ký tự)</label><input class="form-control mb-3" id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
+        <label class="form-label" for="fullName">Họ và tên</label><input class="form-control mb-3" id="fullName" name="fullName" th:value="${fullName}" required maxlength="100">
+        <label class="form-label" for="phone">Số điện thoại</label><input class="form-control mb-3" id="phone" name="phone" th:value="${phone}" required maxlength="20">
+        <label class="form-label" for="email">Email</label><input class="form-control mb-3" id="email" name="email" type="email" th:value="${email}" maxlength="255">
+        <label class="form-label" for="address">Địa chỉ</label><input class="form-control mb-4" id="address" name="address" th:value="${address}" maxlength="255">
+        <button class="btn btn-success w-100" type="submit">Tạo tài khoản</button>
+    </form><a class="d-block text-center mt-3" th:href="@{/login}">Đã có tài khoản? Đăng nhập</a>
+</section></main></body></html>

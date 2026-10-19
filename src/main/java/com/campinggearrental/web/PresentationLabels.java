@@ -2,6 +2,7 @@ package com.campinggearrental.web;
 
 import com.campinggearrental.model.EquipmentStatus;
 import com.campinggearrental.model.PaymentStatus;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.model.RentalOrderStatus;
 import com.campinggearrental.factory.CampingPackageType;
 import java.math.BigDecimal;
@@ -33,8 +34,20 @@ public class PresentationLabels {
         if (value == null) return "";
         return switch (value) {
             case "UNPAID" -> "Chưa thanh toán";
+            case "TRANSFER_REPORTED" -> "Khách đã báo chuyển khoản";
+            case "REVIEW_REQUIRED" -> "Cần khách kiểm tra lại";
+            case "REJECTED" -> "Thông báo chuyển khoản bị từ chối";
             case "PAID" -> "Đã thanh toán";
             default -> value;
+        };
+    }
+
+    public String paymentMethod(PaymentMethod value) {
+        if (value == null) return "Chưa chọn";
+        return switch (value) {
+            case CASH -> "Tiền mặt khi nhận thiết bị";
+            case BANK_TRANSFER -> "Chuyển khoản ngân hàng";
+            case VIETQR -> "Chuyển khoản ngân hàng";
         };
     }
 

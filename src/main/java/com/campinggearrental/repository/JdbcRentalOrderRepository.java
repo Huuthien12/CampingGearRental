@@ -1,6 +1,7 @@
 package com.campinggearrental.repository;
 
 import com.campinggearrental.model.PaymentStatus;
+import com.campinggearrental.model.PaymentMethod;
 import com.campinggearrental.model.RentalDetail;
 import com.campinggearrental.model.RentalOrder;
 import com.campinggearrental.model.RentalOrderStatus;
@@ -22,7 +23,7 @@ import java.util.Optional;
 
 public class JdbcRentalOrderRepository implements RentalOrderRepository {
     private static final String ORDER_COLUMNS = "id, customer_id, rental_date, expected_return_date, actual_return_date, "
-            + "status, subtotal, discount, total, payment_status, created_at";
+            + "status, subtotal, discount, total, payment_method, payment_status, paid_at, created_at";
 
     @Override
     public void insert(RentalOrder rentalOrder) throws SQLException {
@@ -51,7 +52,7 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         validateOrderFields(rentalOrder);
         Objects.requireNonNull(rentalOrder.getDetails(), "rental details must not be null");
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO rental_orders (" + ORDER_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))")) {
+                "INSERT INTO rental_orders (" + ORDER_COLUMNS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))")) {
             bindOrder(statement, rentalOrder);
             statement.executeUpdate();
         }
@@ -111,7 +112,7 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         validateOrderFields(rentalOrder);
         try (PreparedStatement statement = connection.prepareStatement(
                 "UPDATE rental_orders SET customer_id=?, rental_date=?, expected_return_date=?, actual_return_date=?, "
-                        + "status=?, subtotal=?, discount=?, total=?, payment_status=? WHERE id=?")) {
+                        + "status=?, subtotal=?, discount=?, total=?, payment_method=?, payment_status=?, paid_at=? WHERE id=?")) {
             statement.setString(1, rentalOrder.getCustomerId());
             statement.setDate(2, Date.valueOf(rentalOrder.getRentalDate()));
             statement.setDate(3, Date.valueOf(rentalOrder.getExpectedReturnDate()));
@@ -120,15 +121,17 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
             statement.setBigDecimal(6, rentalOrder.getSubtotal());
             statement.setBigDecimal(7, rentalOrder.getDiscount());
             statement.setBigDecimal(8, rentalOrder.getTotal());
-            statement.setString(9, paymentStatus(rentalOrder.getPaymentStatus()).name());
-            statement.setString(10, rentalOrder.getId());
+            setNullablePaymentMethod(statement, 9, rentalOrder.getPaymentMethod());
+            statement.setString(10, paymentStatus(rentalOrder.getPaymentStatus()).name());
+            setNullableTimestamp(statement, 11, rentalOrder.getPaidAt());
+            statement.setString(12, rentalOrder.getId());
             statement.executeUpdate();
         }
     }
 
     static RentalOrder mapOrder(String id, String customerId, LocalDate rentalDate, LocalDate expectedReturnDate,
             LocalDate actualReturnDate, String status, BigDecimal subtotal, BigDecimal discount, BigDecimal total,
-            String paymentStatus, LocalDateTime createdAt) {
+            String paymentMethod, String paymentStatus, LocalDateTime paidAt, LocalDateTime createdAt) {
         RentalOrder order = new RentalOrder();
         order.setId(id);
         order.setCustomerId(customerId);
@@ -139,7 +142,9 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         order.setSubtotal(subtotal);
         order.setDiscount(discount);
         order.setTotal(total);
+        order.setPaymentMethod(paymentMethod(paymentMethod));
         order.setPaymentStatus(paymentStatus(paymentStatus));
+        order.setPaidAt(paidAt);
         order.setCreatedAt(createdAt);
         return order;
     }
@@ -159,7 +164,8 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         RentalOrder order = mapOrder(results.getString("id"), results.getString("customer_id"),
                 results.getDate("rental_date").toLocalDate(), results.getDate("expected_return_date").toLocalDate(),
                 date(results, "actual_return_date"), results.getString("status"), results.getBigDecimal("subtotal"),
-                results.getBigDecimal("discount"), results.getBigDecimal("total"), results.getString("payment_status"),
+                results.getBigDecimal("discount"), results.getBigDecimal("total"), results.getString("payment_method"),
+                results.getString("payment_status"), timestamp(results, "paid_at"),
                 createdAt == null ? null : createdAt.toLocalDateTime());
         order.setDetails(readDetails(connection, order.getId()));
         return order;
@@ -188,9 +194,10 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         statement.setBigDecimal(7, order.getSubtotal());
         statement.setBigDecimal(8, order.getDiscount());
         statement.setBigDecimal(9, order.getTotal());
-        statement.setString(10, paymentStatus(order.getPaymentStatus()).name());
-        if (order.getCreatedAt() == null) statement.setTimestamp(11, null);
-        else statement.setTimestamp(11, Timestamp.valueOf(order.getCreatedAt()));
+        setNullablePaymentMethod(statement, 10, order.getPaymentMethod());
+        statement.setString(11, paymentStatus(order.getPaymentStatus()).name());
+        setNullableTimestamp(statement, 12, order.getPaidAt());
+        setNullableTimestamp(statement, 13, order.getCreatedAt());
     }
 
     private void insertDetail(Connection connection, String orderId, RentalDetail detail) throws SQLException {
@@ -214,9 +221,33 @@ public class JdbcRentalOrderRepository implements RentalOrderRepository {
         return value == null ? null : value.toLocalDate();
     }
 
+    private static LocalDateTime timestamp(ResultSet results, String column) throws SQLException {
+        Timestamp value = results.getTimestamp(column);
+        return value == null ? null : value.toLocalDateTime();
+    }
+
     private static void setNullableDate(PreparedStatement statement, int index, LocalDate value) throws SQLException {
         if (value == null) statement.setNull(index, java.sql.Types.DATE);
         else statement.setDate(index, Date.valueOf(value));
+    }
+
+    private static void setNullableTimestamp(PreparedStatement statement, int index, LocalDateTime value) throws SQLException {
+        if (value == null) statement.setNull(index, java.sql.Types.TIMESTAMP);
+        else statement.setTimestamp(index, Timestamp.valueOf(value));
+    }
+
+    private static void setNullablePaymentMethod(PreparedStatement statement, int index, PaymentMethod value) throws SQLException {
+        if (value == null) statement.setNull(index, java.sql.Types.VARCHAR);
+        else statement.setString(index, value.name());
+    }
+
+    private static PaymentMethod paymentMethod(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return PaymentMethod.valueOf(value);
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("unknown payment method: " + value, exception);
+        }
     }
 
     private static PaymentStatus paymentStatus(String value) {

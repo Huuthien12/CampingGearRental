@@ -8,7 +8,7 @@
     <section class="customer-form-card mx-auto">
         <p class="section-eyebrow mb-1" th:text="${editing ? 'CẬP NHẬT DANH MỤC' : 'THÊM VÀO DANH MỤC'}"></p>
         <h1 class="h2 mb-4" th:text="${editing ? 'Chỉnh sửa thiết bị' : 'Thêm thiết bị'}"></h1>
-        <form method="post" th:object="${equipmentForm}" th:action="${editing} ? @{/equipment/{id}/edit(id=${current.equipmentId})} : @{/equipment}">
+        <form method="post" th:object="${equipmentForm}" th:action="${editing} ? @{/equipment/{id}/edit(id=${current.equipmentId})} : @{/equipment}"><input type="hidden" name="_csrf" th:value="${session.csrfToken}">
             <div class="alert alert-danger" role="alert" th:if="${#fields.hasAnyErrors()}"><p class="mb-1 fw-semibold">Vui lòng kiểm tra lại biểu mẫu:</p><ul class="mb-0"><li th:each="error : ${#fields.allErrors()}" th:text="${error}"></li></ul></div>
             <div class="mb-3" th:if="${editing}"><label class="form-label">Mã thiết bị</label><input class="form-control" th:value="${current.equipmentId}" readonly></div>
             <div class="mb-3"><label for="name" class="form-label">Tên thiết bị</label><input id="name" class="form-control" th:field="*{name}" maxlength="150" required></div>

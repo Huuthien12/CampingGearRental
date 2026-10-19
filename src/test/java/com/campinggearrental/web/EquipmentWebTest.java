@@ -60,7 +60,30 @@ class EquipmentWebTest {
         assertTrue(response.body().contains("100.00"));
         assertTrue(response.body().contains("3 / 5"));
         assertTrue(response.body().contains("Sẵn sàng cho thuê"));
-        assertTrue(response.body().contains("/equipment/EQ001/edit"));
+        assertTrue(response.body().contains("/equipment/EQ001"));
+        assertTrue(response.body().contains("/images/equipment/EQ001.jpg"));
+        assertTrue(response.body().contains("equipment-image-fallback"));
+        assertTrue(response.body().contains("class=\"equipment-image equipment-image-list\""));
+        assertTrue(response.body().contains("/css/app.css?v=20261019-2"));
+    }
+
+    @Test void detailAndStaticImageUseEquipmentIdConvention() throws Exception {
+        String detail = get("/equipment/EQ001").body();
+        assertTrue(detail.contains("/images/equipment/EQ001.jpg"));
+        HttpResponse<String> image = get("/images/equipment/EQ001.jpg");
+        assertEquals(200, image.statusCode());
+        assertTrue(image.headers().firstValue("content-type").orElse("").startsWith("image/jpeg"));
+        String fragment = new String(getClass().getResourceAsStream("/templates/fragments/equipment-image.html").readAllBytes());
+        HttpResponse<String> stylesheet = get("/css/app.css?v=20261019-2");
+        assertEquals(200, stylesheet.statusCode());
+        assertTrue(stylesheet.headers().firstValue("content-type").orElse("").startsWith("text/css"));
+        String css = stylesheet.body();
+        assertTrue(fragment.contains("id + '.jpg'") && fragment.contains("hidden>🧰")
+                && fragment.contains("onload=\"this.hidden=false;this.previousElementSibling.hidden=true\"")
+                && fragment.contains("onerror=\"this.hidden=true;this.previousElementSibling.hidden=false\""));
+        assertTrue(css.contains("display: block") && css.contains("max-width: 100%") && css.contains("object-fit: cover"));
+        assertTrue(css.contains(".equipment-image-list { width: 120px; min-width: 120px; max-width: 120px; height: 80px;")
+                && css.contains(".equipment-image-detail { width: 280px; height: 180px; min-height: 180px;"));
     }
 
     @Test void listRendersOneStatusBadgeForZeroStockAndInactiveEquipment() throws Exception {

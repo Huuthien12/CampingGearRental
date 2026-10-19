@@ -9,6 +9,7 @@
     <p class="text-secondary mb-4">Đăng nhập bằng tài khoản nhân viên.</p>
     <div class="alert alert-danger" role="alert" th:if="${error}" th:text="${error}"></div>
     <form method="post" th:action="@{/login}">
+        <input type="hidden" name="_csrf" th:value="${session.csrfToken}">
         <div class="mb-3">
             <label class="form-label" for="username">Tên đăng nhập</label>
             <input class="form-control" id="username" name="username" autocomplete="username" required>
@@ -17,7 +18,8 @@
             <label class="form-label" for="password">Mật khẩu</label>
             <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
         </div>
-        <button class="btn btn-success w-100" type="submit">Đăng nhập</button>
+            <button class="btn btn-success w-100" type="submit">Đăng nhập</button>
+            <a class="d-block text-center mt-3" th:href="@{/register}">Đăng ký tài khoản khách hàng</a>
     </form>
 </main>
 </body>
